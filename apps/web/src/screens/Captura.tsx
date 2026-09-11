@@ -29,6 +29,14 @@ const anios = (n: number | null) => (n === null ? null : n === 1 ? '1 año' : `$
 const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
 const reloj = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 const horaLocal = () => new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+/** Traduce el rechazo de getUserMedia (en inglés) a algo accionable para quien dicta. */
+const mensajeMicrofono = (e: unknown): string => {
+  const nombre = e instanceof Error ? e.name : '';
+  if (nombre === 'NotAllowedError' || nombre === 'SecurityError') return 'El navegador está bloqueando el micrófono. Habilítalo desde el candado en la barra de direcciones.';
+  if (nombre === 'NotFoundError' || nombre === 'DevicesNotFoundError') return 'No se encontró un micrófono.';
+  return 'No se pudo acceder al micrófono.';
+};
+
 /** Mismo identificador de cliente que arma el servidor en la base instalada. */
 const idCliente = (nombre: string) =>
   nombre.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9ñ\s]/g, ' ').trim().replace(/\s+/g, '-');
@@ -114,8 +122,8 @@ export function Captura() {
   const [avisoCliente, setAvisoCliente] = useState(false);
   const campoTexto = useRef<HTMLInputElement>(null);
 
-  /** La hora de la visita es la del primer dictado, por voz o por texto. */
-  const marcarInicio = () => setInicio((h) => h ?? horaLocal());
+  /** La hora de la visita es la del primer dictado; tras guardar, el próximo dictado abre una hora nueva. */
+  const marcarInicio = () => setInicio((h) => (guardada ? horaLocal() : (h ?? horaLocal())));
 
   const nuevaVisita = () => {
     setFase('listo');
@@ -180,7 +188,13 @@ export function Captura() {
     setError(null);
     try {
       if (!grabadora.grabando) {
-        await grabadora.iniciar();
+        try {
+          await grabadora.iniciar();
+        } catch (e) {
+          // getUserMedia rechaza en inglés (p. ej. "Permission denied"); el original queda en consola.
+          console.error(e);
+          throw new Error(mensajeMicrofono(e));
+        }
         marcarInicio();
         setFase('grabando');
         return;
