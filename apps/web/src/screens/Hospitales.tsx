@@ -4,6 +4,7 @@ import { Link, NavLink, useParams } from 'react-router-dom';
 import { IconCamera, IconDownload, IconMic } from '../components/icons';
 import { Avatars, ConfidenceBar, PageHeader, StatusPill, nivelConfianza } from '../components/ui';
 import { useBase } from '../datos/base';
+import { exportarCsv } from '../datos/csv';
 import { esRenovacion, estadoGeneral, evidenciaTexto, haceDias, sinVerificar } from '../datos/reglas';
 import './Hospitales.css';
 
@@ -53,7 +54,9 @@ export function Hospitales() {
           subtitle={`Última verificación ${haceDias(ultima)} · ${personasAqui} ${personasAqui === 1 ? 'persona ha' : 'personas han'} reportado aquí`}
           actions={
             <>
-              <button type="button" className="btn btn-ghost"><IconDownload /> Exportar CSV</button>
+              <button type="button" className="btn btn-ghost" onClick={() => exportarCsv(cliente.id, lista, clientes)} disabled={lista.length === 0}>
+                <IconDownload /> Exportar CSV
+              </button>
               <Link to={`/captura/placa?cliente=${cliente.id}`} className="btn btn-ghost"><IconCamera /> Foto de placa</Link>
               <Link to="/captura" className="btn btn-primary"><IconMic /> Nueva visita</Link>
             </>

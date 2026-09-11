@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { IconClose, IconDownload, IconMic, IconSearch } from '../components/icons';
 import { ConfidenceBar, PageHeader, StatusPill } from '../components/ui';
+import { useGrabadora } from '../components/useGrabadora';
 import { useBase } from '../datos/base';
+import { exportarCsv } from '../datos/csv';
 import { esRenovacion, estadoGeneral, sinVerificar } from '../datos/reglas';
 import './Consultas.css';
 
@@ -52,6 +54,8 @@ export function Consultas() {
   const [meta, setMeta] = useState('Escribe o elige una pregunta y toca Consultar');
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const grabadora = useGrabadora();
+  const [transcribiendo, setTranscribiendo] = useState(false);
   const clientePorId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
 
   const resultados = useMemo(
@@ -99,18 +103,55 @@ export function Consultas() {
     }
   };
 
+  /** Primer toque graba; el segundo transcribe en el dispositivo y consulta lo dicho. */
+  const dictar = async () => {
+    setError(null);
+    if (!grabadora.grabando) {
+      try {
+        await grabadora.iniciar();
+      } catch {
+        setError('No se pudo usar el micrófono. Revisa el permiso del navegador.');
+      }
+      return;
+    }
+    setTranscribiendo(true);
+    setMeta('Transcribiendo en este dispositivo…');
+    try {
+      const { texto: dicho } = await api.transcribir(await grabadora.detener());
+      setTranscribiendo(false);
+      if (dicho.trim()) await consultar(dicho);
+      else setMeta('No se escuchó ninguna pregunta');
+    } catch (e) {
+      setTranscribiendo(false);
+      setError(e instanceof Error ? e.message : 'No se pudo transcribir la pregunta.');
+      setMeta('Sin interpretar');
+    }
+  };
+
+  const ocupado = consultando || transcribiendo;
+  const metaVisible = grabadora.grabando ? `Escuchando · ${grabadora.segundos} s · la voz no sale del dispositivo` : meta;
+
   return (
     <>
       <PageHeader eyebrow="Análisis" title="Consultas" subtitle="Pregunta con tus palabras. La pregunta se convierte en filtros que puedes revisar." />
 
       <div className="split consultas">
         <div className="consultas-col">
-          <section className="card consulta-box" aria-busy={consultando}>
+          <section className="card consulta-box" aria-busy={ocupado}>
             <form className="consulta-form" onSubmit={(e) => { e.preventDefault(); void consultar(texto); }}>
               <IconSearch width={20} height={20} className="faint" />
-              <input className="consulta-input" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Consulta" placeholder="Ej.: tomógrafos de más de 10 años en Colombia" disabled={consultando} />
-              <button type="button" className="btn btn-ghost consulta-mic" aria-label="Consultar por voz" disabled={consultando}><IconMic /></button>
-              <button type="submit" className="btn btn-primary" disabled={consultando || origen === 'ejemplo'}>{consultando ? 'Consultando…' : 'Consultar'}</button>
+              <input className="consulta-input" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Consulta" placeholder="Ej.: tomógrafos de más de 10 años en Colombia" disabled={ocupado || grabadora.grabando} />
+              <button
+                type="button"
+                className={`btn consulta-mic ${grabadora.grabando ? 'btn-primary' : 'btn-ghost'}`}
+                aria-label={grabadora.grabando ? 'Detener y consultar' : 'Consultar por voz'}
+                aria-pressed={grabadora.grabando}
+                onClick={() => void dictar()}
+                disabled={ocupado || origen === 'ejemplo'}
+              >
+                {grabadora.grabando ? <span className="consulta-mic-stop" /> : <IconMic />}
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={ocupado || grabadora.grabando || origen === 'ejemplo'}>{consultando ? 'Consultando…' : 'Consultar'}</button>
             </form>
             <div className="consulta-interpretacion">
               <span className="eyebrow">Interpretado como</span>
@@ -124,7 +165,7 @@ export function Consultas() {
                 );
               })}
               {activos.length === 0 && <span className="faint">Sin filtros: se muestra toda la base.</span>}
-              <span className="mono faint consulta-meta">{meta}</span>
+              <span className="mono faint consulta-meta">{metaVisible}</span>
             </div>
             {error && <p className="note">{error}</p>}
           </section>
@@ -132,7 +173,9 @@ export function Consultas() {
           <section className="card resultados">
             <div className="resultados-head">
               <span><span className="section-title">{resultados.length} equipos</span> <span className="faint">en {nClientes} clientes</span></span>
-              <button type="button" className="btn btn-ghost btn-sm"><IconDownload /> Exportar CSV</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => exportarCsv('consulta', resultados, clientes)} disabled={resultados.length === 0}>
+                <IconDownload /> Exportar CSV
+              </button>
             </div>
             <div className="table-head consulta-cols">
               <span>Cliente</span><span>Ciudad</span><span>Equipo</span><span>Marca y modelo</span><span>Antigüedad</span><span>Estado</span><span>Confianza</span>
@@ -161,7 +204,7 @@ export function Consultas() {
             <div className="eyebrow">Preguntas de ejemplo</div>
             <div className="recientes">
               {EJEMPLOS.map((p) => (
-                <button key={p} type="button" className={`reciente${p === texto ? ' on' : ''}`} onClick={() => void consultar(p)} disabled={consultando || origen === 'ejemplo'}>{p}</button>
+                <button key={p} type="button" className={`reciente${p === texto ? ' on' : ''}`} onClick={() => void consultar(p)} disabled={ocupado || grabadora.grabando || origen === 'ejemplo'}>{p}</button>
               ))}
             </div>
           </section>
