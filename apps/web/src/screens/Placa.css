@@ -1,4 +1,4 @@
-.placa { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.placa { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
 .placa-foto { display: flex; flex-direction: column; gap: 14px; padding: 16px; min-height: 0; }
 .placa-visor { position: relative; flex: 1; min-height: 420px; border-radius: 14px; background: var(--rec-bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .visor-corner { position: absolute; width: 28px; height: 28px; border: 2px solid rgba(255, 255, 255, 0.85); }
@@ -27,10 +27,12 @@
 .placa-aplicada { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink2); }
 .placa-aplicada svg { color: var(--navy); flex: none; }
 .placa-leidos { display: flex; flex-direction: column; margin-top: 14px; }
-.placa-leido { display: grid; grid-template-columns: 130px minmax(0, 1fr) 150px 96px; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hair); }
+.placa-leido { display: grid; grid-template-columns: 112px minmax(0, 1fr) 112px auto; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hair); }
 .placa-leido .pill { justify-self: end; }
-.placa-valor { font-size: 15px; font-weight: 500; }
+.placa-valor { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .placa-cambios { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 16px; }
-.placa-cambio { display: grid; grid-template-columns: 130px minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 14px; }
-.placa-antes, .placa-despues { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.placa-cambio { display: grid; grid-template-columns: 112px minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 14px; }
+/* Si no caben valor y estado en una línea, el estado baja; el valor nunca se parte. */
+.placa-antes, .placa-despues { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.placa-antes s, .placa-despues strong { white-space: nowrap; }
 .placa-despues strong { font-weight: 600; }

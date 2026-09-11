@@ -23,3 +23,9 @@
 .testigo-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .testigo-info .mono { font-size: 11px; }
 .testigo-via { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; }
+
+/* En laptops (hasta 1600 px) la tabla no cabe junto al desglose: el desglose baja debajo de la tabla. */
+@media (max-width: 1599px) {
+  .hospitales { grid-template-columns: 220px minmax(0, 1fr); gap: 24px; }
+  .hospital-grid { grid-template-columns: minmax(0, 1fr); }
+}
