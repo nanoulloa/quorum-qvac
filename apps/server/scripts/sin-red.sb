@@ -1,0 +1,5 @@
+(version 1)
+(allow default)
+; Simula modo avión para este proceso: bloquea toda conexión saliente salvo localhost.
+(deny network-outbound (remote ip "*:*"))
+(allow network-outbound (remote ip "localhost:*"))
