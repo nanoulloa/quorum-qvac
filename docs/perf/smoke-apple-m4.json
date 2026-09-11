@@ -1,0 +1,88 @@
+{
+  "fecha": "2026-09-11T00:35:45.633Z",
+  "hardware": {
+    "cpu": "Apple M4",
+    "memoriaGB": 16,
+    "sistema": "Darwin 25.5.0",
+    "arquitectura": "arm64"
+  },
+  "node": "v24.17.0",
+  "qvacSdk": "0.19.0",
+  "resultados": {
+    "transcripcion": {
+      "ok": true,
+      "modelo": "WHISPER_BASE_Q8_0",
+      "cargaMs": 28422,
+      "transcripcionMs": 666,
+      "texto": "Estoy en hospital de mocar en Pacifik, en si unidad de panama. Hay dos resonadores en tomógrafo, como de los resonadores es Philips, una ingenia, que parece de unos ocho años. El tomógrafo lo cambiaron el año pasado."
+    },
+    "extraccion": {
+      "ok": true,
+      "modelo": "QWEN3_1_7B_INST_Q4",
+      "cargaMs": 64254,
+      "totalMs": 5054,
+      "stats": {
+        "timeToFirstToken": 666.504,
+        "tokensPerSecond": 42.17375942789969,
+        "cacheTokens": 0,
+        "promptTokens": 170,
+        "generatedTokens": 143,
+        "emittedTokens": 143,
+        "avgConcurrentSeq": 1,
+        "backendDevice": "gpu"
+      },
+      "resultado": {
+        "cliente": "hospital de mocar en pacifik, en si unidad de panama",
+        "ciudad": "si",
+        "pais": "panama",
+        "equipos": [
+          {
+            "modalidad": "Resonancia magnética",
+            "marca": "philips",
+            "modelo": "unknown",
+            "antiguedad_anios": 8,
+            "antiguedad_estado": "Reportado"
+          },
+          {
+            "modalidad": "Resonancia magnética",
+            "marca": "unknown",
+            "modelo": "unknown",
+            "antiguedad_anios": 1,
+            "antiguedad_estado": "Reportado"
+          }
+        ]
+      }
+    },
+    "placa": {
+      "ok": true,
+      "modelo": "VISIONPSY_NANO_460M_MULTIMODAL_Q8_0",
+      "cargaMs": 28682,
+      "totalMs": 2727,
+      "stats": {
+        "timeToFirstToken": 1965.8210000000001,
+        "tokensPerSecond": 91.32665395256386,
+        "cacheTokens": 0,
+        "promptTokens": 368,
+        "generatedTokens": 51,
+        "emittedTokens": 51,
+        "avgConcurrentSeq": 1,
+        "backendDevice": "gpu"
+      },
+      "resultado": {
+        "manufacturer": "PHILIPS",
+        "model": "Ingenia 1.5T",
+        "serial_number": "SN 45021",
+        "manufacture_date": "2017-03"
+      }
+    },
+    "embeddings": {
+      "ok": true,
+      "modelo": "EMBEDDINGGEMMA_300M_Q8_0",
+      "cargaMs": 21786,
+      "embedMs": 573,
+      "dimension": 768,
+      "similitudMismoEquipo": 0.729,
+      "similitudOtroEquipo": 0.636
+    }
+  }
+}

@@ -1,0 +1,79 @@
+import { performance } from 'node:perf_hooks';
+import {
+  close,
+  loadModel,
+  unloadModel,
+  EMBEDDINGGEMMA_300M_Q8_0,
+  MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
+  QWEN3_1_7B_INST_Q4,
+  QWEN3_4B_INST_Q4_K_M,
+  VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
+  WHISPER_BASE_Q8_0,
+} from '@qvac/sdk';
+
+export type ClaveModelo = 'whisper' | 'extraccion' | 'consultas' | 'vision' | 'embeddings';
+
+type Definicion = {
+  nombre: string;
+  cuantizacion: string;
+  cargar: () => Promise<string>;
+};
+
+/** Todos los modelos corren en este dispositivo. VisionPsy nunca se delega (regla del track Psy). */
+export const CATALOGO: Record<ClaveModelo, Definicion> = {
+  whisper: {
+    nombre: 'whisper-base',
+    cuantizacion: 'Q8_0',
+    cargar: () => loadModel({ modelSrc: WHISPER_BASE_Q8_0, modelConfig: { language: 'es', translate: false, temperature: 0 } }),
+  },
+  extraccion: {
+    nombre: 'qwen3-1.7b',
+    cuantizacion: 'Q4',
+    cargar: () => loadModel({ modelSrc: QWEN3_1_7B_INST_Q4, modelConfig: { ctx_size: 4096 } }),
+  },
+  consultas: {
+    nombre: 'qwen3-4b',
+    cuantizacion: 'Q4_K_M',
+    cargar: () => loadModel({ modelSrc: QWEN3_4B_INST_Q4_K_M, modelConfig: { ctx_size: 4096 } }),
+  },
+  vision: {
+    nombre: 'visionpsy-nano-460m',
+    cuantizacion: 'Q8_0',
+    cargar: () =>
+      loadModel({
+        modelSrc: VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
+        modelConfig: { ctx_size: 4096, projectionModelSrc: MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0, image_no_upscale: 'on' } as never,
+      }),
+  },
+  embeddings: {
+    nombre: 'embeddinggemma-300m',
+    cuantizacion: 'Q8_0',
+    cargar: () => loadModel({ modelSrc: EMBEDDINGGEMMA_300M_Q8_0 }),
+  },
+};
+
+export type ModeloCargado = Omit<Definicion, 'cargar'> & { id: string; cargaMs: number };
+
+const cargados = new Map<ClaveModelo, Promise<ModeloCargado>>();
+
+/** Carga el modelo la primera vez que se pide y reutiliza la misma instancia después. */
+export function modelo(clave: ClaveModelo): Promise<ModeloCargado> {
+  let promesa = cargados.get(clave);
+  if (!promesa) {
+    const { cargar, ...info } = CATALOGO[clave];
+    const t0 = performance.now();
+    promesa = cargar().then((id) => ({ ...info, id, cargaMs: Math.round(performance.now() - t0) }));
+    promesa.catch(() => cargados.delete(clave));
+    cargados.set(clave, promesa);
+  }
+  return promesa;
+}
+
+export async function cerrarModelos() {
+  const activos = await Promise.allSettled(cargados.values());
+  for (const r of activos) {
+    if (r.status === 'fulfilled') await unloadModel({ modelId: r.value.id }).catch(() => {});
+  }
+  cargados.clear();
+  await close();
+}

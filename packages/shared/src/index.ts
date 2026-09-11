@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export * from './confianza.ts';
+export * from './extraccion.ts';
 
 /** Estado de cada dato capturado (requisito del reto Philips). */
 export const Estado = z.enum(['Confirmado', 'Reportado', 'Estimado', 'Desconocido']);

@@ -1,0 +1,173 @@
+import type { DatoExtraido, Extraccion } from '@quorum/shared';
+import { completarJson } from '../qvac/inferir.ts';
+import type { ClaveModelo } from '../qvac/modelos.ts';
+
+const nulo = (tipo: string) => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
+
+const MODALIDADES = ['Resonancia magnética', 'Tomografía', 'Ecografía', 'Rayos X', 'Otro'] as const;
+
+/** Esquema que el modelo está obligado a respetar (salida JSON por gramática). */
+const ESQUEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['cliente', 'ciudad', 'pais', 'equipos'],
+  properties: {
+    cliente: nulo('string'),
+    ciudad: nulo('string'),
+    pais: nulo('string'),
+    equipos: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['modalidad', 'cantidad', 'marca', 'modelo', 'antiguedad_anios', 'antiguedad_frase'],
+        properties: {
+          modalidad: { type: 'string', enum: MODALIDADES },
+          cantidad: { type: 'integer' },
+          marca: nulo('string'),
+          modelo: nulo('string'),
+          antiguedad_anios: nulo('integer'),
+          antiguedad_frase: nulo('string'),
+        },
+      },
+    },
+  },
+};
+
+const EJEMPLO_DICTADO =
+  'Pasé por el Hospital San Ejemplo en Lima, Perú. Tienen dos tomógrafos Canon de unos cinco años y un resonador que no pude ver.';
+
+const EJEMPLO_JSON = JSON.stringify({
+  cliente: 'Hospital San Ejemplo',
+  ciudad: 'Lima',
+  pais: 'Perú',
+  equipos: [
+    { modalidad: 'Tomografía', cantidad: 2, marca: 'Canon', modelo: null, antiguedad_anios: 5, antiguedad_frase: 'de unos cinco años' },
+    { modalidad: 'Resonancia magnética', cantidad: 1, marca: null, modelo: null, antiguedad_anios: null, antiguedad_frase: null },
+  ],
+});
+
+const sistema = (anioActual: number) =>
+  [
+    'Extraes datos de equipos médicos de lo que dicta un ingeniero de campo al salir de un hospital.',
+    'Reglas:',
+    '- Incluye TODOS los equipos mencionados. Resonador = Resonancia magnética, tomógrafo = Tomografía, ecógrafo = Ecografía.',
+    '- Agrupa equipos iguales en un solo elemento con su cantidad. Si de un grupo solo se describe una parte, sepárala del resto.',
+    '- Si un dato no se menciona, usa null. Nunca escribas "unknown" ni "desconocido".',
+    `- El año actual es ${anioActual}. Si dice el año de instalación o fabricación, calcula la antigüedad. "El año pasado" es 1 año.`,
+    '- En antiguedad_frase copia las palabras exactas del dictado sobre la antigüedad, o null.',
+    `Ejemplo de dictado: ${EJEMPLO_DICTADO}`,
+    `Ejemplo de respuesta: ${EJEMPLO_JSON}`,
+    '/no_think',
+  ].join('\n');
+
+type EquipoCrudo = {
+  modalidad: (typeof MODALIDADES)[number];
+  cantidad: number;
+  marca: string | null;
+  modelo: string | null;
+  antiguedad_anios: number | null;
+  antiguedad_frase: string | null;
+};
+
+type Crudo = { cliente: string | null; ciudad: string | null; pais: string | null; equipos: EquipoCrudo[] };
+
+const VACIOS = /^(unknown|desconocid[oa]|n\/?a|null|none|ninguno|sin dato|no se sabe|-+)$/i;
+const DUDA = /\b(parece|parecen|unos|unas|como|más o menos|aprox\w*|calculo|quiz[aá]s?|tal vez|creo|alrededor|supongo|estimo)\b/i;
+
+/** Líneas de producto conocidas. Sirve para corregir marca/modelo cruzados y completar el modelo. */
+const CATALOGO: Record<string, string[]> = {
+  Philips: ['Ingenia', 'Achieva', 'Incisive', 'Brilliance', 'EPIQ', 'Affiniti', 'Azurion'],
+  Siemens: ['Magnetom', 'Avanto', 'Skyra', 'Somatom', 'Acuson'],
+  GE: ['Signa', 'Revolution', 'Optima', 'Discovery', 'Logiq', 'Voluson'],
+  Canon: ['Vantage', 'Aquilion', 'Aplio'],
+};
+
+const MARCA_DE_MODELO = new Map(Object.entries(CATALOGO).flatMap(([marca, modelos]) => modelos.map((m) => [m.toLowerCase(), marca] as const)));
+
+const limpiar = (s: string | null) => {
+  const t = s?.trim() ?? '';
+  return t && !VACIOS.test(t) ? t : null;
+};
+
+const palabra = (texto: string, termino: string) => new RegExp(`\\b${termino}\\b`, 'i').test(texto);
+
+/**
+ * Correcciones deterministas sobre la salida del modelo. Cada una responde a un patrón
+ * explícito del dictado, así que se pueden explicar y probar.
+ */
+function corregir(crudo: Crudo, texto: string, anioActual: number): EquipoCrudo[] {
+  let equipos = crudo.equipos.map((e) => ({ ...e, marca: limpiar(e.marca), modelo: limpiar(e.modelo), cantidad: Math.max(1, e.cantidad || 1) }));
+
+  for (const e of equipos) {
+    // Marca y modelo cruzados: "Achieva" como marca.
+    const marcaComoModelo = e.marca && MARCA_DE_MODELO.get(e.marca.toLowerCase());
+    if (marcaComoModelo && !e.modelo) {
+      e.modelo = e.marca;
+      e.marca = marcaComoModelo;
+    }
+    // Modelo que el dictado nombra junto a la marca pero el modelo omitió.
+    if (e.marca && !e.modelo) {
+      const candidatos = (CATALOGO[e.marca] ?? []).filter((m) => palabra(texto, m) && !equipos.some((o) => o.modelo?.toLowerCase() === m.toLowerCase()));
+      if (candidatos.length === 1) e.modelo = candidatos[0];
+    }
+  }
+
+  // "Se instaló en 2016": solo si hay un único equipo sin antigüedad, para no asignarlo al equivocado.
+  const anio = texto.match(/\b(?:instal\w*|fabric\w*|compr\w*|desde)\D{0,15}((?:19|20)\d{2})\b/i);
+  const sinAntiguedad = equipos.filter((e) => e.antiguedad_anios === null);
+  if (anio && sinAntiguedad.length === 1) {
+    sinAntiguedad[0].antiguedad_anios = anioActual - Number(anio[1]);
+    sinAntiguedad[0].antiguedad_frase = anio[0];
+  }
+
+  // "Uno de los resonadores es Philips": el grupo se separa en la parte descrita y el resto.
+  if (/\b(uno|una) de (los|las)\b/i.test(texto)) {
+    equipos = equipos.flatMap((e) =>
+      e.cantidad > 1 && (e.marca || e.modelo || e.antiguedad_anios !== null)
+        ? [
+            { ...e, cantidad: 1 },
+            { ...e, cantidad: e.cantidad - 1, marca: null, modelo: null, antiguedad_anios: null, antiguedad_frase: null },
+          ]
+        : [e],
+    );
+  }
+
+  return equipos;
+}
+
+const dicho = <T>(valor: T | null): DatoExtraido<T> => ({ valor, estado: valor === null ? 'Desconocido' : 'Reportado' });
+
+/** La duda la decide una regla sobre las palabras del dictado, no el modelo. */
+function antiguedad(e: EquipoCrudo): DatoExtraido<number> {
+  if (e.antiguedad_anios === null || e.antiguedad_anios < 0) return { valor: null, estado: 'Desconocido' };
+  return { valor: e.antiguedad_anios, estado: e.antiguedad_frase && DUDA.test(e.antiguedad_frase) ? 'Estimado' : 'Reportado' };
+}
+
+const MODELO_EXTRACCION = (process.env.QUORUM_MODELO_EXTRACCION as ClaveModelo | undefined) ?? 'extraccion';
+
+/** Convierte un dictado en datos estructurados con su estado. Tolera datos incompletos. */
+export async function extraer(texto: string, anioActual = new Date().getFullYear()): Promise<Extraccion> {
+  const crudo = await completarJson<Crudo>({
+    clave: MODELO_EXTRACCION,
+    tarea: 'extraccion',
+    nombreEsquema: 'observacion',
+    esquema: ESQUEMA,
+    history: [
+      { role: 'system', content: sistema(anioActual) },
+      { role: 'user', content: texto },
+    ],
+  });
+  return {
+    cliente: dicho(limpiar(crudo.cliente)),
+    ciudad: dicho(limpiar(crudo.ciudad)),
+    pais: dicho(limpiar(crudo.pais)),
+    equipos: corregir(crudo, texto, anioActual).map((e) => ({
+      modalidad: e.modalidad,
+      cantidad: e.cantidad,
+      marca: dicho(e.marca),
+      modelo: dicho(e.modelo),
+      antiguedad: antiguedad(e),
+    })),
+  };
+}
