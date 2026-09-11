@@ -5,13 +5,13 @@ import {
   unloadModel,
   EMBEDDINGGEMMA_300M_Q8_0,
   MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
+  PARAKEET_TDT_0_6B_V3_Q8_0,
   QWEN3_1_7B_INST_Q4,
   QWEN3_4B_INST_Q4_K_M,
   VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
-  WHISPER_BASE_Q8_0,
 } from '@qvac/sdk';
 
-export type ClaveModelo = 'whisper' | 'extraccion' | 'consultas' | 'vision' | 'embeddings';
+export type ClaveModelo = 'voz' | 'extraccion' | 'consultas' | 'vision' | 'embeddings';
 
 type Definicion = {
   nombre: string;
@@ -21,10 +21,11 @@ type Definicion = {
 
 /** Todos los modelos corren en este dispositivo. VisionPsy nunca se delega (regla del track Psy). */
 export const CATALOGO: Record<ClaveModelo, Definicion> = {
-  whisper: {
-    nombre: 'whisper-base',
+  // Parakeet v3: 14% de error por palabra en el dictado de prueba contra 25–31% de whisper-base (scripts/eval-voz.ts).
+  voz: {
+    nombre: 'parakeet-tdt-0.6b-v3',
     cuantizacion: 'Q8_0',
-    cargar: () => loadModel({ modelSrc: WHISPER_BASE_Q8_0, modelConfig: { language: 'es', translate: false, temperature: 0 } }),
+    cargar: () => loadModel({ modelSrc: PARAKEET_TDT_0_6B_V3_Q8_0 }),
   },
   extraccion: {
     nombre: 'qwen3-1.7b',

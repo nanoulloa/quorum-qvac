@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { extraer } from './captura/extraccion.ts';
-import { VOCABULARIO } from './captura/vocabulario.ts';
 import { transcribir } from './qvac/inferir.ts';
 import { cerrarModelos } from './qvac/modelos.ts';
 import { leerRegistro } from './qvac/perf.ts';
@@ -20,7 +19,7 @@ app.post('/api/transcribir', async (req, reply) => {
   if (!Buffer.isBuffer(audio) || audio.byteLength === 0) {
     return reply.code(400).send({ error: 'Envía el audio en el cuerpo con Content-Type audio/wav o audio/webm.' });
   }
-  return transcribir(audio, req.headers['content-type'] ?? 'audio/wav', VOCABULARIO);
+  return transcribir(audio, req.headers['content-type'] ?? 'audio/wav');
 });
 
 app.post<{ Body: { texto?: string } }>('/api/extraer', async (req, reply) => {

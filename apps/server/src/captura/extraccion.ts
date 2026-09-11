@@ -1,6 +1,8 @@
-import type { DatoExtraido, Extraccion } from '@quorum/shared';
+import type { DatoExtraido, Extraccion, Modalidad } from '@quorum/shared';
 import { completarJson } from '../qvac/inferir.ts';
 import type { ClaveModelo } from '../qvac/modelos.ts';
+import { clienteConocido } from './clientes.ts';
+import { mencionaParecido, normalizar, numero, oraciones } from './texto.ts';
 
 const nulo = (tipo: string) => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
 
@@ -85,19 +87,42 @@ const CATALOGO: Record<string, string[]> = {
 
 const MARCA_DE_MODELO = new Map(Object.entries(CATALOGO).flatMap(([marca, modelos]) => modelos.map((m) => [m.toLowerCase(), marca] as const)));
 
+/** Cómo se nombra cada modalidad en un dictado, con la palabra anterior para leer la cantidad. */
+const MENCIONES: [Modalidad, RegExp][] = [
+  ['Resonancia magnética', /(\S+)\s+(?:resonador(?:es)?|resonancias?)\b/i],
+  ['Tomografía', /(\S+)\s+(?:tom[oó]grafos?|tomograf[ií]as?)\b/i],
+  ['Ecografía', /(\S+)\s+(?:ec[oó]grafos?|ecograf[ií]as?|ultrasonidos?)\b/i],
+];
+
 const limpiar = (s: string | null) => {
   const t = s?.trim() ?? '';
   return t && !VACIOS.test(t) ? t : null;
 };
 
-const palabra = (texto: string, termino: string) => new RegExp(`\\b${termino}\\b`, 'i').test(texto);
+/** Años que describe una oración sobre un equipo, si los dice de forma explícita. */
+function aniosEnOracion(oracion: string, anioActual: number): { anios: number; frase: string } | null {
+  const n = normalizar(oracion);
+  if (/\b(el|del) ano pasado\b/.test(n)) return { anios: 1, frase: 'el año pasado' };
+  const anio = oracion.match(/\b(?:instal\w*|fabric\w*|compr\w*|desde)\D{0,15}((?:19|20)\d{2})\b/i);
+  if (anio) return { anios: anioActual - Number(anio[1]), frase: anio[0] };
+  return null;
+}
 
 /**
  * Correcciones deterministas sobre la salida del modelo. Cada una responde a un patrón
- * explícito del dictado, así que se pueden explicar y probar.
+ * explícito del dictado, así que se pueden explicar y probar. Varias existen porque la
+ * transcripción comete errores ("ingenio" por "Ingenia", "en un tomógrafo" por "y un tomógrafo").
  */
 function corregir(crudo: Crudo, texto: string, anioActual: number): EquipoCrudo[] {
   let equipos = crudo.equipos.map((e) => ({ ...e, marca: limpiar(e.marca), modelo: limpiar(e.modelo), cantidad: Math.max(1, e.cantidad || 1) }));
+
+  // Todo equipo nombrado en el dictado debe estar en el resultado.
+  for (const [modalidad, patron] of MENCIONES) {
+    const mencion = texto.match(patron);
+    if (mencion && !equipos.some((e) => e.modalidad === modalidad)) {
+      equipos.push({ modalidad, cantidad: numero(mencion[1]) ?? 1, marca: null, modelo: null, antiguedad_anios: null, antiguedad_frase: null });
+    }
+  }
 
   for (const e of equipos) {
     // Marca y modelo cruzados: "Achieva" como marca.
@@ -106,19 +131,22 @@ function corregir(crudo: Crudo, texto: string, anioActual: number): EquipoCrudo[
       e.modelo = e.marca;
       e.marca = marcaComoModelo;
     }
-    // Modelo que el dictado nombra junto a la marca pero el modelo omitió.
+    // Modelo que el dictado nombra junto a la marca, aunque venga mal transcrito.
     if (e.marca && !e.modelo) {
-      const candidatos = (CATALOGO[e.marca] ?? []).filter((m) => palabra(texto, m) && !equipos.some((o) => o.modelo?.toLowerCase() === m.toLowerCase()));
+      const candidatos = (CATALOGO[e.marca] ?? []).filter((m) => mencionaParecido(texto, m) && !equipos.some((o) => o.modelo?.toLowerCase() === m.toLowerCase()));
       if (candidatos.length === 1) e.modelo = candidatos[0];
     }
   }
 
-  // "Se instaló en 2016": solo si hay un único equipo sin antigüedad, para no asignarlo al equivocado.
-  const anio = texto.match(/\b(?:instal\w*|fabric\w*|compr\w*|desde)\D{0,15}((?:19|20)\d{2})\b/i);
-  const sinAntiguedad = equipos.filter((e) => e.antiguedad_anios === null);
-  if (anio && sinAntiguedad.length === 1) {
-    sinAntiguedad[0].antiguedad_anios = anioActual - Number(anio[1]);
-    sinAntiguedad[0].antiguedad_frase = anio[0];
+  // Antigüedad dicha en una oración que habla de un solo tipo de equipo.
+  for (const oracion of oraciones(texto)) {
+    const tipos = MENCIONES.filter(([, patron]) => patron.test(` ${oracion}`)).map(([m]) => m);
+    const dicho = tipos.length === 1 ? aniosEnOracion(oracion, anioActual) : null;
+    const candidatos = dicho ? equipos.filter((e) => e.modalidad === tipos[0] && e.antiguedad_anios === null) : [];
+    if (dicho && candidatos.length === 1) {
+      candidatos[0].antiguedad_anios = dicho.anios;
+      candidatos[0].antiguedad_frase = dicho.frase;
+    }
   }
 
   // "Uno de los resonadores es Philips": el grupo se separa en la parte descrita y el resto.
@@ -158,8 +186,9 @@ export async function extraer(texto: string, anioActual = new Date().getFullYear
       { role: 'user', content: texto },
     ],
   });
+  const cliente = limpiar(crudo.cliente);
   return {
-    cliente: dicho(limpiar(crudo.cliente)),
+    cliente: dicho(clienteConocido(cliente) ?? cliente),
     ciudad: dicho(limpiar(crudo.ciudad)),
     pais: dicho(limpiar(crudo.pais)),
     equipos: corregir(crudo, texto, anioActual).map((e) => ({

@@ -47,6 +47,7 @@ a { color: inherit; text-decoration: none; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 44px; padding: 0 20px; border-radius: 11px; font-size: 14px; font-weight: 500; white-space: nowrap; transition: opacity 0.15s, background-color 0.15s; }
 .btn svg { width: 16px; height: 16px; flex: none; }
 .btn:hover { opacity: 0.9; }
+.btn:disabled, .recorder-btn:disabled, .input:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--btn-bg); color: var(--btn-fg); }
 .btn-ghost { box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
 .btn-ghost:hover { background: var(--subtle); opacity: 1; }

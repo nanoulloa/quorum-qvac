@@ -27,6 +27,8 @@ export async function completarJson<T>({ clave, tarea, history, nombreEsquema, e
       modelId: m.id,
       history: history as never,
       stream: true,
+      // Temperatura 0 y semilla fija: el mismo dictado debe dar siempre los mismos datos.
+      generationParams: { temp: 0, seed: 7, predict: 768 },
       responseFormat: { type: 'json_schema', json_schema: { name: nombreEsquema, schema: esquema } },
     });
     for await (const _evento of run.events) {
@@ -74,18 +76,15 @@ const EXTENSIONES: Record<string, string> = {
   'audio/mp4': 'm4a',
 };
 
-/**
- * Transcribe audio en español. `vocabulario` orienta a Whisper con nombres propios
- * (clientes, marcas, modelos). El audio se escribe a un archivo temporal local y se borra al terminar.
- */
-export async function transcribir(audio: Buffer, contentType: string, vocabulario?: string): Promise<{ texto: string; duracionMs: number }> {
-  const m = await modelo('whisper');
+/** Transcribe audio. El audio se escribe a un archivo temporal local y se borra al terminar. */
+export async function transcribir(audio: Buffer, contentType: string): Promise<{ texto: string; duracionMs: number }> {
+  const m = await modelo('voz');
   const extension = EXTENSIONES[contentType.split(';')[0].trim()] ?? 'wav';
   const archivo = path.join(os.tmpdir(), `quorum-${randomUUID()}.${extension}`);
   await fs.writeFile(archivo, audio);
   const t0 = performance.now();
   try {
-    const texto = (await transcribe({ modelId: m.id, audioChunk: archivo, prompt: vocabulario })).trim();
+    const texto = (await transcribe({ modelId: m.id, audioChunk: archivo })).trim();
     const duracionMs = Math.round(performance.now() - t0);
     await registrar({
       fecha: new Date().toISOString(),

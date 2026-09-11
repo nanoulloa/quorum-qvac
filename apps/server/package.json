@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "smoke": "tsx scripts/smoke.ts",
     "eval:extraccion": "tsx scripts/eval-extraccion.ts",
+    "eval:voz": "tsx scripts/eval-voz.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
