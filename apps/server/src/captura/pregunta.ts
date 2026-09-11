@@ -96,6 +96,12 @@ const SISTEMA = [
   '/no_think',
 ].join('\n');
 
+/** El modelo se pasa del largo pedido y la razón larga deforma la tarjeta. */
+export function enDocePalabras(razon: string) {
+  const palabras = razon.trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '').split(' ');
+  return palabras.length <= 12 ? palabras.join(' ') : `${palabras.slice(0, 12).join(' ')}…`;
+}
+
 /** El modelo solo redacta: qué se pregunta y qué respuestas se ofrecen ya está decidido. */
 export async function redactarPregunta(extraccion: Extraccion, faltante: Faltante): Promise<Pregunta> {
   const e = extraccion.equipos[faltante.equipo];
@@ -110,7 +116,7 @@ export async function redactarPregunta(extraccion: Extraccion, faltante: Faltant
       { role: 'user', content: `Equipo: ${equipo}.\nDato que falta: ${EN_PALABRAS[faltante.campo]}.` },
     ],
   });
-  return { ...faltante, pregunta: redactado.pregunta.trim(), razon: redactado.razon.trim(), respuestas: respuestasDe(e, faltante.campo) };
+  return { ...faltante, pregunta: redactado.pregunta.trim(), razon: enDocePalabras(redactado.razon), respuestas: respuestasDe(e, faltante.campo) };
 }
 
 const NEGATIVAS = ['no se', 'no lo se', 'ni idea', 'no'];

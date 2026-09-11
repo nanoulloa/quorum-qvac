@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { DatoExtraido, EquipoExtraido, Extraccion, Modalidad } from '@quorum/shared';
-import { elegirFaltante, interpretarRespuesta } from './pregunta.ts';
+import { elegirFaltante, enDocePalabras, interpretarRespuesta } from './pregunta.ts';
 
 const dato = <T>(valor: T | null, estado: DatoExtraido<T>['estado'] = 'Reportado'): DatoExtraido<T> => ({ valor, estado: valor === null ? 'Desconocido' : estado });
 
@@ -88,5 +88,20 @@ describe('interpretarRespuesta', () => {
     assert.deepEqual(interpretarRespuesta('modelo', 'ingenia'), { valor: 'Ingenia', estado: 'Reportado' });
     assert.deepEqual(interpretarRespuesta('modelo', 'Ingenio'), { valor: 'Ingenia', estado: 'Reportado' });
     assert.deepEqual(interpretarRespuesta('modelo', 'MX-200'), { valor: 'MX-200', estado: 'Reportado' });
+  });
+});
+
+describe('enDocePalabras', () => {
+  it('deja pasar una razón corta sin tocarla', () => {
+    assert.equal(enDocePalabras('La antigüedad decide si es una oportunidad de renovación'), 'La antigüedad decide si es una oportunidad de renovación');
+  });
+
+  it('recorta a doce palabras la razón larga que deforma la tarjeta', () => {
+    const larga = 'La antigüedad determina la necesidad de mantenimiento y la eficiencia del equipo en el hospital';
+    assert.equal(enDocePalabras(larga), 'La antigüedad determina la necesidad de mantenimiento y la eficiencia del equipo…');
+  });
+
+  it('normaliza espacios y quita el punto final', () => {
+    assert.equal(enDocePalabras('  El modelo   define los repuestos.  '), 'El modelo define los repuestos');
   });
 });

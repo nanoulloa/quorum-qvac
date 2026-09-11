@@ -102,6 +102,9 @@ export function Captura() {
     setPreguntando(true);
     try {
       setPregunta(await api.pregunta(fuente, omitidos));
+    } catch (e) {
+      // La extracción ya quedó guardada en estado: que falle la pregunta no debe tirar la captura a error.
+      console.error(e);
     } finally {
       setPreguntando(false);
     }
@@ -223,7 +226,7 @@ export function Captura() {
   };
 
   const ocupado = fase === 'transcribiendo' || fase === 'extrayendo' || fase === 'guardando';
-  const paso = guardada ? 5 : grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pregunta || preguntando ? 2 : 4;
+  const paso = guardada ? 5 : grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pregunta || preguntando ? 2 : extraccion ? 4 : 0;
   const onda = grabadora.grabando ? grabadora.niveles.map((n) => 4 + n * 36) : ONDA;
   const nota = grabadora.grabando ? 'Grabando · la voz no sale del dispositivo' : fase === 'transcribiendo' ? 'Transcribiendo en este dispositivo…' : fase === 'extrayendo' ? 'Extrayendo datos…' : 'Toca para dictar la visita';
 
