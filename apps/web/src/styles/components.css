@@ -1,8 +1,9 @@
 /* Encabezado de página */
-.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
-.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* Si las acciones no caben junto al título, bajan a su propia fila en vez de aplastarlo. */
+.page-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+.page-header-text { flex: 1 1 380px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .page-subtitle { font-size: 15px; color: var(--ink2); }
-.page-header-side { display: flex; align-items: center; gap: 22px; flex: none; }
+.page-header-side { flex: 0 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; min-width: 0; }
 .connection { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--ink2); }
 .connection-item { display: inline-flex; align-items: center; gap: 7px; }
 

@@ -79,7 +79,7 @@ export function BaseInstalada() {
       <PageHeader
         eyebrow="Análisis"
         title="Base instalada"
-        subtitle={`${filtrados.length} equipos en ${filas.length} clientes`}
+        subtitle={`${filtrados.length} ${filtrados.length === 1 ? 'equipo' : 'equipos'} en ${filas.length} ${filas.length === 1 ? 'cliente' : 'clientes'}`}
         actions={
           <button type="button" className="btn btn-ghost" onClick={() => exportarCsv('base-instalada', filtrados, clientes)} disabled={filtrados.length === 0}>
             <IconDownload /> Exportar CSV
