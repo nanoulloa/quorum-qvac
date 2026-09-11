@@ -7,14 +7,6 @@ import { PageHeader, StatusPill } from '../components/ui';
 import { useBase, type EquipoUI } from '../datos/base';
 import './Placa.css';
 
-// Lectura de ejemplo hasta que se lea una foto real.
-const EJEMPLO: CampoPlaca[] = [
-  { campo: 'Marca', valor: 'Philips', confianza: 95, estado: 'Confirmado' },
-  { campo: 'Modelo', valor: 'Ingenia 1.5T', confianza: 92, estado: 'Confirmado' },
-  { campo: 'Número de serie', valor: '45021', confianza: 80, estado: 'Confirmado' },
-  { campo: 'Fabricación', valor: '2017-03', confianza: 88, estado: 'Confirmado' },
-];
-
 const NUEVO = 'nuevo';
 const MODALIDADES: Modalidad[] = ['Resonancia magnética', 'Tomografía', 'Ecografía', 'Rayos X', 'Otro'];
 
@@ -59,7 +51,8 @@ export function Placa() {
     if (foto) URL.revokeObjectURL(foto);
   }, [foto]);
 
-  const campos = lectura?.campos ?? EJEMPLO;
+  // Sin foto no se muestra ningún dato: nada que parezca leído antes de leerlo.
+  const campos = lectura?.campos ?? [];
   const cliente = clientes.find((c) => c.id === clienteElegido) ?? clientes[0];
   const delCliente = equipos.filter((e) => e.clienteId === cliente?.id);
   const sugerido = sugerirEquipo(delCliente, campoDe(campos, 'Marca')?.valor, campoDe(campos, 'Modelo')?.valor);
@@ -140,7 +133,7 @@ export function Placa() {
   };
 
   const antes = aplicada?.antes ?? antesDe(equipo);
-  const antiguedad = lectura?.antiguedad ?? { valor: 9, estado: 'Confirmado' as Estado };
+  const antiguedad = lectura?.antiguedad ?? { valor: null, estado: 'Desconocido' as Estado };
   const despues: Cambios = {
     Marca: valor(campoDe(campos, 'Marca')?.valor, campoDe(campos, 'Marca')?.estado),
     Modelo: valor(campoDe(campos, 'Modelo')?.valor, campoDe(campos, 'Modelo')?.estado),
@@ -158,7 +151,7 @@ export function Placa() {
       ? 'Leyendo la placa en este dispositivo…'
       : lectura
         ? `${lectura.modelo} · en este dispositivo · ${(lectura.duracionMs / 1000).toFixed(1).replace('.', ',')} s`
-        : 'visionpsy-nano-460m · Q8_0 · lectura de ejemplo';
+        : 'visionpsy-nano-460m · Q8_0 · lee la foto en este dispositivo';
 
   return (
     <>
@@ -229,6 +222,11 @@ export function Placa() {
         <div className="placa-col">
           <section className="card card-body placa-destino">
             <div className="eyebrow">Aplicar a</div>
+            {clientes.length === 0 ? (
+              <p className="note">
+                Todavía no hay hospitales en la base. <Link to="/captura" className="btn-link">Dicta una visita</Link> para registrar el hospital y después aplica la placa a su equipo.
+              </p>
+            ) : (
             <div className="placa-selectores">
               <select
                 className="input"
@@ -269,6 +267,7 @@ export function Placa() {
                 </select>
               )}
             </div>
+            )}
             {aplicada && (
               <p className="placa-aplicada" role="status">
                 <IconCheck width={16} height={16} />
@@ -283,6 +282,9 @@ export function Placa() {
 
           <section className="card card-body">
             <h2 className="title-lg">Campos leídos</h2>
+            {!lectura && (
+              <p className="note">{fase === 'leyendo' ? 'Leyendo la placa en este dispositivo…' : 'Toma una foto de la placa, o usa la de ejemplo, para leer marca, modelo, número de serie y fecha de fabricación.'}</p>
+            )}
             <div className="placa-leidos">
               {campos.map((c) => (
                 <div key={c.campo} className="placa-leido">
@@ -301,7 +303,8 @@ export function Placa() {
           <section className="card card-body">
             <div className="eyebrow">Cambios en el registro</div>
             <div className="placa-cambios">
-              {(Object.keys(antes) as (keyof Cambios)[]).map((k) => (
+              {!lectura && <p className="faint">Aquí verás qué datos del equipo confirma la foto.</p>}
+              {lectura && (Object.keys(antes) as (keyof Cambios)[]).map((k) => (
                 <div key={k} className="placa-cambio">
                   <span className="muted">{k}</span>
                   <span className="placa-antes"><s className="faint">{antes[k].valor}</s><StatusPill estado={antes[k].estado} /></span>

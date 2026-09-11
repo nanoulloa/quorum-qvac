@@ -133,6 +133,7 @@ export function Rendimiento() {
             <span>{ms(r.duracionMs)}</span>
           </div>
         ))}
+        {registro.length === 0 && <p className="faint lista-vacia">Cada inferencia aparece aquí en cuanto ocurre.</p>}
       </section>
     </>
   );

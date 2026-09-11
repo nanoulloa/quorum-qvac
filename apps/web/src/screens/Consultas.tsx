@@ -198,7 +198,9 @@ export function Consultas() {
                 </div>
               );
             })}
-            {resultados.length === 0 && <p className="faint resultados-vacio">Ningún equipo cumple estos filtros.</p>}
+            {resultados.length === 0 && (
+              <p className="faint resultados-vacio">{equipos.length === 0 ? 'Todavía no hay equipos en la base. Dicta una visita para empezar.' : 'Ningún equipo cumple estos filtros.'}</p>
+            )}
           </section>
         </div>
 
