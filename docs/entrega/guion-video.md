@@ -135,11 +135,11 @@ y el registro de cada inferencia en el repositorio."*
   seguimiento no tienen acción. Solo se dicta en Captura.
 - **Exportar CSV** (Base instalada, Consultas, Hospitales) y **Agregar dispositivo** (Red P2P):
   botones sin acción todavía.
-- **La lectura de placa no escribe en el almacén.** "Aplicar al resonador" vuelve a Captura; el panel
-  "Cambios en el registro" compara contra un registro fijo. En la toma se dice lo que hace la lectura,
-  nunca que actualiza la ficha.
-- **La pregunta de seguimiento la decide una regla**, no el modelo: aparece cuando la antigüedad de un
-  equipo quedó Desconocida, con tres respuestas fijas. No decir que el modelo redactó la pregunta.
+- **La pregunta de seguimiento la decide una regla, pero el texto lo redacta el modelo.** La regla fija
+  elige el campo que más falta y ofrece las respuestas; el modelo local solo escribe la pregunta y su
+  razón. Se puede decir las dos cosas: la decisión es determinista, la redacción es del modelo.
+- **Exportar CSV y consulta por voz** llegaron con el PR #39; verificar en la máquina antes de
+  guionizar una toma sobre ellos.
 - **Duplicados sin embeddings.** `embeddinggemma-300m` está en el catálogo de modelos pero ninguna
   ruta lo llama; el emparejamiento de la pantalla Red es por reglas (mismo cliente, misma modalidad,
   marcas compatibles, antigüedad cercana, personas distintas). No atribuirlo a un modelo.
