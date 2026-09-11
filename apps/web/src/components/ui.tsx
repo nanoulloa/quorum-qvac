@@ -1,19 +1,38 @@
 import type { ReactNode } from 'react';
 import type { Estado } from '@quorum/shared';
-import { conexion } from '../mocks/data';
+import { useEffect, useState } from 'react';
+import { useBase } from '../datos/base';
 import { IconCheck, IconPlane } from './icons';
 
+function useEnLinea() {
+  const [enLinea, setEnLinea] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const actualizar = () => setEnLinea(navigator.onLine);
+    window.addEventListener('online', actualizar);
+    window.addEventListener('offline', actualizar);
+    return () => {
+      window.removeEventListener('online', actualizar);
+      window.removeEventListener('offline', actualizar);
+    };
+  }, []);
+  return enLinea;
+}
+
 export function Connection() {
+  const { red, origen } = useBase();
+  const enLinea = useEnLinea();
+  const pares = red?.dispositivos.filter((d) => !d.esEste && d.enLinea).length ?? 0;
+  const estadoRed = origen === 'ejemplo' ? 'Servidor local sin respuesta' : pares > 0 ? `${pares} ${pares === 1 ? 'par' : 'pares'} en línea` : 'Sin pares conectados';
   return (
     <div className="connection mono">
       <span className="connection-item">
         <IconPlane width={14} height={14} />
-        {conexion.online ? 'En línea' : 'Sin conexión'}
+        {enLinea ? 'Con internet' : 'Sin conexión'}
       </span>
       <span className="divider-v" />
       <span>IA en este dispositivo</span>
       <span className="divider-v" />
-      <span>Sincronizado {conexion.ultimaSync}</span>
+      <span>{estadoRed}</span>
     </div>
   );
 }

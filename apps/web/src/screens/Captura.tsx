@@ -1,23 +1,30 @@
-import type { Extraccion } from '@quorum/shared';
+import type { Evidencia, Extraccion } from '@quorum/shared';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { IconCamera, IconCheck, IconMic, IconSend } from '../components/icons';
 import { PageHeader, StatusPill, Steps } from '../components/ui';
 import { useGrabadora } from '../components/useGrabadora';
+import { useBase } from '../datos/base';
 import { captura, clientePorId, type Dato, type Segmento } from '../mocks/data';
 
 const PASOS = ['Dictado', 'Extracción', 'Preguntas', 'Foto de placa', 'Guardar'];
-const RESPUESTAS = ['Menos de 5', '5 a 10', 'Más de 10'];
+/** Respuesta rápida → años que se guardan como Estimado. */
+const RESPUESTAS: [string, number][] = [['Menos de 5', 3], ['5 a 10', 7], ['Más de 10', 12]];
 const ONDA = [6, 10, 16, 24, 14, 28, 20, 10, 22, 32, 18, 8, 14, 26, 22, 12, 6, 20, 34, 24, 14, 10, 22, 30, 12, 20, 8, 14, 24, 30, 18, 10, 20, 12, 26, 22, 8, 14, 10, 6, 12, 20, 26, 16, 10, 14, 8, 6, 10, 7, 5, 6, 4, 5, 4, 3, 4, 3, 3, 3, 4, 3, 3, 3, 3, 3];
 
-type Fase = 'listo' | 'grabando' | 'transcribiendo' | 'extrayendo' | 'error';
+type Fase = 'listo' | 'grabando' | 'transcribiendo' | 'extrayendo' | 'guardando' | 'error';
 type EquipoVista = { id: string; nombre: string; campos: Record<string, Dato> };
 type Encabezado = { cliente: string | null; lugar: string | null };
 
 const NOMBRE: Record<string, string> = { 'Resonancia magnética': 'Resonador magnético', Tomografía: 'Tomógrafo', Ecografía: 'Ecógrafo', 'Rayos X': 'Equipo de rayos X', Otro: 'Otro equipo' };
 
 const anios = (n: number | null) => (n === null ? null : n === 1 ? '1 año' : `${n} años`);
+const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
+const reloj = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+/** Mismo identificador de cliente que arma el servidor en la base instalada. */
+const idCliente = (nombre: string) =>
+  nombre.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9ñ\s]/g, ' ').trim().replace(/\s+/g, '-');
 
 function aVista(r: Extraccion): { equipos: EquipoVista[]; encabezado: Encabezado } {
   return {
@@ -25,11 +32,7 @@ function aVista(r: Extraccion): { equipos: EquipoVista[]; encabezado: Encabezado
     equipos: r.equipos.map((e, i) => ({
       id: `r${i}`,
       nombre: `${NOMBRE[e.modalidad] ?? e.modalidad}${e.cantidad > 1 ? ` ×${e.cantidad}` : ''}`,
-      campos: {
-        Marca: e.marca,
-        Modelo: e.modelo,
-        Antigüedad: { valor: anios(e.antiguedad.valor), estado: e.antiguedad.estado },
-      },
+      campos: { Marca: e.marca, Modelo: e.modelo, Antigüedad: { valor: anios(e.antiguedad.valor), estado: e.antiguedad.estado } },
     })),
   };
 }
@@ -61,30 +64,34 @@ function anotar(texto: string, r: Extraccion): Segmento[] {
   return segmentos;
 }
 
-const reloj = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-
 export function Captura() {
   const demo = clientePorId(captura.clienteId);
   const grabadora = useGrabadora();
+  const { red, recargar } = useBase();
   const [fase, setFase] = useState<Fase>('listo');
   const [error, setError] = useState<string | null>(null);
   const [transcripcion, setTranscripcion] = useState<Segmento[]>(captura.transcripcion);
+  const [dictado, setDictado] = useState<{ texto: string; fuente: Evidencia } | null>(null);
+  const [extraccion, setExtraccion] = useState<Extraccion | null>(null);
   const [equipos, setEquipos] = useState<EquipoVista[]>(captura.equipos);
   const [encabezado, setEncabezado] = useState<Encabezado>({ cliente: demo?.nombre ?? null, lugar: demo ? `${demo.ciudad}, ${demo.pais}` : null });
   const [modelos, setModelos] = useState('parakeet · qwen3-1.7b · datos de ejemplo');
   const [respuesta, setRespuesta] = useState<{ id: string; texto: string } | null>(null);
+  const [guardada, setGuardada] = useState<{ cliente: string | null } | null>(null);
   const [texto, setTexto] = useState('');
 
-  const procesar = async (dictado: string, msTranscripcion?: number) => {
+  const procesar = async (contenido: string, fuente: Evidencia, msTranscripcion?: number) => {
     setFase('extrayendo');
     const t0 = performance.now();
-    const r = await api.extraer(dictado);
+    const r = await api.extraer(contenido);
     const vista = aVista(r);
-    setTranscripcion(anotar(dictado, r));
+    setDictado({ texto: contenido, fuente });
+    setExtraccion(r);
+    setTranscripcion(anotar(contenido, r));
     setEquipos(vista.equipos);
     setEncabezado(vista.encabezado);
     setRespuesta(null);
-    const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
+    setGuardada(null);
     const partes = [msTranscripcion !== undefined ? `parakeet ${segundos(msTranscripcion)}` : null, `qwen3-1.7b ${segundos(performance.now() - t0)}`];
     setModelos(`${partes.filter(Boolean).join(' · ')} · en este dispositivo`);
     setFase('listo');
@@ -107,46 +114,76 @@ export function Captura() {
       setFase('transcribiendo');
       const t = await api.transcribir(audio);
       setTranscripcion([t.texto]);
-      await procesar(t.texto, t.duracionMs);
+      await procesar(t.texto, 'voz', t.duracionMs);
     } catch (e) {
       conError(e);
     }
   };
 
   const enviarTexto = async () => {
-    const dictado = texto.trim();
-    if (!dictado) return;
+    const contenido = texto.trim();
+    if (!contenido) return;
     setError(null);
     setTexto('');
-    setTranscripcion([dictado]);
-    await procesar(dictado).catch(conError);
+    setTranscripcion([contenido]);
+    await procesar(contenido, 'texto').catch(conError);
   };
 
   const pendiente = useMemo(() => {
     const i = equipos.findIndex((e) => e.campos['Antigüedad']?.estado === 'Desconocido');
-    return i >= 0 ? { id: equipos[i].id, etiqueta: `${equipos[i].nombre.toLowerCase()} ${String(i + 1).padStart(2, '0')}` } : null;
+    return i >= 0 ? { id: equipos[i].id, indice: i, etiqueta: `${equipos[i].nombre.toLowerCase()} ${String(i + 1).padStart(2, '0')}` } : null;
   }, [equipos]);
 
-  const responder = (r: string) => {
+  const responder = (etiqueta: string, valor: number) => {
     if (!pendiente) return;
-    setRespuesta({ id: pendiente.id, texto: r });
-    setEquipos((prev) => prev.map((e) => (e.id === pendiente.id ? { ...e, campos: { ...e.campos, Antigüedad: { valor: `${r} años`, estado: 'Estimado' } } } : e)));
+    setRespuesta({ id: pendiente.id, texto: etiqueta });
+    setEquipos((prev) => prev.map((e) => (e.id === pendiente.id ? { ...e, campos: { ...e.campos, Antigüedad: { valor: `~${valor} años`, estado: 'Estimado' } } } : e)));
+    setExtraccion((prev) =>
+      prev ? { ...prev, equipos: prev.equipos.map((e, i) => (i === pendiente.indice ? { ...e, antiguedad: { valor, estado: 'Estimado' } } : e)) } : prev,
+    );
   };
 
-  const ocupado = fase === 'transcribiendo' || fase === 'extrayendo';
-  const paso = grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pendiente ? 2 : 3;
+  const guardar = async () => {
+    if (!extraccion || !dictado) return;
+    setError(null);
+    setFase('guardando');
+    try {
+      await api.guardarObservacion({
+        fuente: dictado.fuente,
+        transcripcion: dictado.texto,
+        cliente: extraccion.cliente,
+        ciudad: extraccion.ciudad,
+        pais: extraccion.pais,
+        equipos: extraccion.equipos.map((e) => ({ ...e, evidencia: dictado.fuente })),
+      });
+      await recargar();
+      setGuardada({ cliente: extraccion.cliente.valor });
+      setFase('listo');
+    } catch (e) {
+      conError(e);
+    }
+  };
+
+  const ocupado = fase === 'transcribiendo' || fase === 'extrayendo' || fase === 'guardando';
+  const paso = guardada ? 5 : grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pendiente ? 2 : 4;
   const onda = grabadora.grabando ? grabadora.niveles.map((n) => 4 + n * 36) : ONDA;
   const nota = grabadora.grabando ? 'Grabando · la voz no sale del dispositivo' : fase === 'transcribiendo' ? 'Transcribiendo en este dispositivo…' : fase === 'extrayendo' ? 'Extrayendo datos…' : 'Toca para dictar la visita';
 
   return (
     <>
       <PageHeader
-        eyebrow={`Visita en curso · ${captura.hora}`}
+        eyebrow="Visita en curso"
         title={encabezado.cliente ?? 'Nueva visita'}
         subtitle={encabezado.lugar ?? 'Cliente sin identificar'}
         actions={
-          <button type="button" className="btn btn-primary" disabled={ocupado}>
-            <IconCheck /> Guardar visita
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void guardar()}
+            disabled={!extraccion || ocupado || Boolean(guardada)}
+            title={extraccion ? undefined : 'Dicta o escribe una visita primero'}
+          >
+            <IconCheck /> {fase === 'guardando' ? 'Guardando…' : guardada ? 'Visita guardada' : 'Guardar visita'}
           </button>
         }
       />
@@ -194,7 +231,13 @@ export function Captura() {
             <div className="mono faint transcript-meta">{modelos}</div>
           </section>
 
-          {respuesta ? (
+          {guardada ? (
+            <section className="card answered">
+              <IconCheck width={18} height={18} />
+              <span>Guardada en este dispositivo y firmada por <strong>{red?.este.nombre ?? 'este dispositivo'}</strong>. Se comparte al sincronizar.</span>
+              {guardada.cliente && <Link to={`/hospitales/${idCliente(guardada.cliente)}`} className="btn btn-link">Ver en Hospitales</Link>}
+            </section>
+          ) : respuesta ? (
             <section className="card answered">
               <IconCheck width={18} height={18} />
               <span>Anotado: <strong>{respuesta.texto} años</strong> como Estimado</span>
@@ -207,8 +250,8 @@ export function Captura() {
                   <div className="question-text">¿Cuántos años tiene, más o menos?</div>
                 </div>
                 <div className="question-answers">
-                  {RESPUESTAS.map((r) => (
-                    <button key={r} type="button" className="answer" onClick={() => responder(r)}>{r}</button>
+                  {RESPUESTAS.map(([etiqueta, valor]) => (
+                    <button key={etiqueta} type="button" className="answer" onClick={() => responder(etiqueta, valor)}>{etiqueta}</button>
                   ))}
                   <button type="button" className="answer answer-icon" aria-label="Responder por voz">
                     <IconMic width={17} height={17} />

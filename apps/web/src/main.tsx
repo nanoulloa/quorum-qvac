@@ -15,11 +15,14 @@ import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
 import App from './App';
+import { BaseProvider } from './datos/base';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <BaseProvider>
+        <App />
+      </BaseProvider>
     </BrowserRouter>
   </StrictMode>,
 );

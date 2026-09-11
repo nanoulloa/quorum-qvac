@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { iniciales, useBase } from '../datos/base';
 import { yo } from '../mocks/data';
 import { IconBuilding, IconChart, IconGauge, IconMic, IconMoon, IconNetwork, IconSearch, IconSun } from './icons';
 import { useTheme } from './useTheme';
@@ -14,6 +15,8 @@ const links = [
 
 export function Layout() {
   const { theme, toggle } = useTheme();
+  const { red } = useBase();
+  const nombre = red?.este.nombre ?? yo.nombre;
   const nextLabel = theme === 'dark' ? 'Tema claro' : 'Tema oscuro';
 
   return (
@@ -29,7 +32,7 @@ export function Layout() {
         <button type="button" className="rail-link rail-theme" onClick={toggle} aria-label={nextLabel} data-label={nextLabel}>
           {theme === 'dark' ? <IconSun /> : <IconMoon />}
         </button>
-        <div className="avatar" title={`${yo.nombre} · ${yo.rol}`}>{yo.iniciales}</div>
+        <div className="avatar" title={`${nombre} · este dispositivo`}>{iniciales(nombre)}</div>
       </nav>
       <main className="main">
         <Outlet />

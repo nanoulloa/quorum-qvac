@@ -1,8 +1,10 @@
+import type { Modalidad } from '@quorum/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconClose, IconDownload, IconMic, IconSearch } from '../components/icons';
 import { ConfidenceBar, PageHeader, StatusPill } from '../components/ui';
-import { clientePorId, equipos, esRenovacion, estadoGeneral, sinVerificar, type Modalidad } from '../mocks/data';
+import { useBase } from '../datos/base';
+import { esRenovacion, estadoGeneral, sinVerificar } from '../datos/reglas';
 import './Consultas.css';
 
 type Filtros = {
@@ -33,14 +35,17 @@ const describir: Record<keyof Filtros, (f: Filtros) => [string, string]> = {
 
 export function Consultas() {
   const navigate = useNavigate();
+  const { clientes, equipos } = useBase();
   const [texto, setTexto] = useState(RECIENTES[0].texto);
   const [filtros, setFiltros] = useState<Filtros>(RECIENTES[0].filtros);
+  const clientePorId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
 
   const resultados = useMemo(
     () =>
       equipos.filter((e) => {
-        const c = clientePorId(e.clienteId)!;
+        const c = clientePorId.get(e.clienteId);
         return (
+          c &&
           (!filtros.pais || c.pais === filtros.pais) &&
           (!filtros.modalidad || e.modalidad === filtros.modalidad) &&
           (filtros.antiguedadMin === undefined || (e.anios ?? 0) > filtros.antiguedadMin) &&
@@ -48,7 +53,7 @@ export function Consultas() {
           (!filtros.soloSinVerificar || sinVerificar(e))
         );
       }),
-    [filtros],
+    [equipos, clientePorId, filtros],
   );
   const nClientes = new Set(resultados.map((e) => e.clienteId)).size;
   const activos = (Object.keys(filtros) as (keyof Filtros)[]).filter((k) => filtros[k] !== undefined && filtros[k] !== false);
@@ -85,7 +90,6 @@ export function Consultas() {
                 );
               })}
               {activos.length === 0 && <span className="faint">Sin filtros: se muestra toda la base.</span>}
-              <span className="mono faint consulta-meta">qwen3-4b · en este dispositivo · 3,1 s</span>
             </div>
           </section>
 
@@ -98,7 +102,7 @@ export function Consultas() {
               <span>Cliente</span><span>Ciudad</span><span>Equipo</span><span>Marca y modelo</span><span>Antigüedad</span><span>Estado</span><span>Confianza</span>
             </div>
             {resultados.map((e) => {
-              const c = clientePorId(e.clienteId)!;
+              const c = clientePorId.get(e.clienteId)!;
               const marcaModelo = [e.marca.valor, e.modelo.valor].filter(Boolean).join(' ');
               return (
                 <div key={e.id} role="link" tabIndex={0} className="table-row selectable consulta-cols" onClick={() => navigate(`/hospitales/${c.id}`)} onKeyDown={(ev) => ev.key === 'Enter' && navigate(`/hospitales/${c.id}`)}>

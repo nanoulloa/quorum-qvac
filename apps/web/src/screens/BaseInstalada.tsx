@@ -1,11 +1,12 @@
+import type { Modalidad } from '@quorum/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconClock, IconDownload } from '../components/icons';
 import { ConfidenceBar, PageHeader } from '../components/ui';
-import { clientePorId, clientes, equipos, esRenovacion, haceDias, sinVerificar, type Modalidad } from '../mocks/data';
+import { useBase } from '../datos/base';
+import { esRenovacion, haceDias, sinVerificar } from '../datos/reglas';
 import './BaseInstalada.css';
 
-const PAISES = ['Todos', ...Array.from(new Set(clientes.map((c) => c.pais)))];
 const MODALIDADES: ('Todas' | Modalidad)[] = ['Todas', 'Resonancia magnética', 'Tomografía', 'Ecografía'];
 const CONFIANZAS = [
   { label: 'Todas', min: 0 },
@@ -30,20 +31,25 @@ function ChipGroup<T extends string>({ label, options, value, onChange }: { labe
 
 export function BaseInstalada() {
   const navigate = useNavigate();
+  const { clientes, equipos } = useBase();
   const [pais, setPais] = useState('Todos');
   const [modalidad, setModalidad] = useState<'Todas' | Modalidad>('Todas');
   const [confianzaMin, setConfianzaMin] = useState('Todas');
 
+  const clientePorId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
+  const paises = useMemo(() => ['Todos', ...Array.from(new Set(clientes.map((c) => c.pais)))], [clientes]);
+
   const filtrados = useMemo(() => {
     const min = CONFIANZAS.find((c) => c.label === confianzaMin)?.min ?? 0;
     return equipos.filter((e) => {
-      const c = clientePorId(e.clienteId)!;
-      return (pais === 'Todos' || c.pais === pais) && (modalidad === 'Todas' || e.modalidad === modalidad) && e.confianza.total >= min;
+      const c = clientePorId.get(e.clienteId);
+      return c && (pais === 'Todos' || c.pais === pais) && (modalidad === 'Todas' || e.modalidad === modalidad) && e.confianza.total >= min;
     });
-  }, [pais, modalidad, confianzaMin]);
+  }, [equipos, clientePorId, pais, modalidad, confianzaMin]);
 
-  const porPais = PAISES.slice(1)
-    .map((p) => ({ pais: p, total: filtrados.filter((e) => clientePorId(e.clienteId)!.pais === p).length }))
+  const porPais = paises
+    .slice(1)
+    .map((p) => ({ pais: p, total: filtrados.filter((e) => clientePorId.get(e.clienteId)?.pais === p).length }))
     .filter((p) => p.total > 0)
     .sort((a, b) => b.total - a.total);
   const maximo = Math.max(1, ...porPais.map((p) => p.total));
@@ -77,7 +83,7 @@ export function BaseInstalada() {
       />
 
       <div className="filtros">
-        <ChipGroup label="País" options={PAISES} value={pais} onChange={setPais} />
+        <ChipGroup label="País" options={paises} value={pais} onChange={setPais} />
         <ChipGroup label="Modalidad" options={MODALIDADES} value={modalidad} onChange={setModalidad} />
         <ChipGroup label="Confianza" options={CONFIANZAS.map((c) => c.label)} value={confianzaMin} onChange={setConfianzaMin} />
       </div>
@@ -96,6 +102,7 @@ export function BaseInstalada() {
                   </div>
                 </div>
               ))}
+              {porPais.length === 0 && <p className="faint lista-vacia">Sin equipos con estos filtros.</p>}
             </div>
           </section>
 
@@ -121,7 +128,7 @@ export function BaseInstalada() {
           <section className="card lista-lateral">
             <div className="lista-lateral-head"><h2 className="section-title">Oportunidades de renovación</h2><span className="faint">{renovacion.length}</span></div>
             {renovacion.map((e) => {
-              const c = clientePorId(e.clienteId)!;
+              const c = clientePorId.get(e.clienteId)!;
               return (
                 <button key={e.id} type="button" className="lista-item" onClick={() => navigate(`/hospitales/${c.id}`)}>
                   <span className="lista-item-main"><strong>{e.nombre} · {e.marca.valor ?? 'marca sin dato'}</strong><span className="faint">{c.nombre} · {c.ciudad}</span></span>
@@ -135,7 +142,7 @@ export function BaseInstalada() {
           <section className="card lista-lateral">
             <div className="lista-lateral-head"><h2 className="section-title">Sin verificar hace más de 180 días</h2><span className="faint">{viejos.length}</span></div>
             {viejos.map((e) => {
-              const c = clientePorId(e.clienteId)!;
+              const c = clientePorId.get(e.clienteId)!;
               return (
                 <button key={e.id} type="button" className="lista-item" onClick={() => navigate(`/hospitales/${c.id}`)}>
                   <IconClock width={18} height={18} className="faint" />
