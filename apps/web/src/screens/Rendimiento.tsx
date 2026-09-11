@@ -49,13 +49,18 @@ export function Rendimiento() {
   }, []);
 
   const modelos = useMemo(() => {
+    // Un mismo modelo corriendo aquí y en un par son filas distintas: así se ve qué se delegó.
     const grupos = new Map<string, RegistroInferencia[]>();
-    for (const r of registro.filter((x) => !x.error)) grupos.set(r.modelo, [...(grupos.get(r.modelo) ?? []), r]);
-    return [...grupos.entries()].map(([modelo, rs]) => ({
-      modelo,
+    for (const r of registro.filter((x) => !x.error)) {
+      const clave = `${r.modelo}|${r.dondeCorre}|${r.par ?? ''}`;
+      grupos.set(clave, [...(grupos.get(clave) ?? []), r]);
+    }
+    return [...grupos.entries()].map(([clave, rs]) => ({
+      clave,
+      modelo: rs[0].modelo,
       tareas: [...new Set(rs.map((r) => TAREA[r.tarea] ?? r.tarea))].join(', '),
       cuantizacion: rs[0].cuantizacion,
-      donde: rs[0].dondeCorre === 'par' ? 'Par' : 'Este dispositivo',
+      donde: rs[0].dondeCorre === 'par' ? `Par · ${rs[0].par ?? 'otro dispositivo'}` : 'Este dispositivo',
       carga: Math.max(0, ...rs.map((r) => r.cargaMs ?? 0)) || null,
       ttft: mediana(rs.map((r) => r.ttftMs).filter((v): v is number => v !== undefined)),
       velocidad: mediana(rs.map((r) => r.tokensPorSegundo).filter((v): v is number => v !== undefined)),
@@ -104,7 +109,7 @@ export function Rendimiento() {
           <span>Modelo</span><span>Tareas</span><span>Cuantización</span><span>Dónde corre</span><span>Carga</span><span>Primer token</span><span>Velocidad</span>
         </div>
         {modelos.map((m) => (
-          <div key={m.modelo} className="table-row rend-modelos">
+          <div key={m.clave} className="table-row rend-modelos">
             <span className="mono">{m.modelo}</span>
             <span>{m.tareas} <span className="faint">· {m.llamadas}</span></span>
             <span className="mono faint">{m.cuantizacion}</span>
@@ -126,7 +131,7 @@ export function Rendimiento() {
           <div key={`${r.fecha}-${i}`} className="table-row rend-log mono">
             <span className="faint">{hora(r.fecha)}</span>
             <span className="rend-tarea">{TAREA[r.tarea] ?? r.tarea}{r.error ? ' · error' : ''}</span>
-            <span>{r.modelo}</span>
+            <span>{r.modelo}{r.dondeCorre === 'par' ? ` · par ${r.par ?? ''}` : ''}</span>
             <span>{r.tokensEntrada ?? '—'}</span>
             <span>{r.tokensSalida ?? '—'}</span>
             <span>{ms(r.ttftMs)}</span>

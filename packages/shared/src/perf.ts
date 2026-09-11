@@ -7,6 +7,8 @@ export type RegistroInferencia = {
   modelo: string;
   cuantizacion: string;
   dondeCorre: 'este-dispositivo' | 'par';
+  /** Nombre del par que corrió la inferencia, cuando `dondeCorre` es 'par'. */
+  par?: string;
   cargaMs?: number;
   duracionMs: number;
   prompt?: string;

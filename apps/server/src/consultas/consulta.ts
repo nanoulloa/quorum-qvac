@@ -1,14 +1,26 @@
 import { performance } from 'node:perf_hooks';
-import type { FiltrosConsulta, Modalidad, RespuestaConsulta } from '@quorum/shared';
+import type { FiltrosConsulta, Modalidad, RegistroInferencia, RespuestaConsulta } from '@quorum/shared';
 import { CATALOGO, marcaConocida } from '../captura/catalogo.ts';
 import { clienteConocido } from '../captura/clientes.ts';
 import { paisCanonico } from '../captura/paises.ts';
 import { normalizar, numero } from '../captura/texto.ts';
 import { completarJson } from '../qvac/inferir.ts';
 import { CATALOGO as MODELOS } from '../qvac/modelos.ts';
+import { registrar } from '../qvac/perf.ts';
 
 /** Clientes y ciudades que existen en la base; la consulta solo acepta entidades que se pueden anclar. */
 export type Conocidos = { clientes: string[]; ciudades: string[] };
+
+type Propuesta = { cliente: string | null; ciudad: string | null };
+
+/** Pide la inferencia a un par del equipo que ofrece consultas. Rechaza si no hay ninguno o no responde. */
+export type Delegar = (pedido: {
+  history: { role: 'system' | 'user'; content: string }[];
+  nombreEsquema: string;
+  esquema: Record<string, unknown>;
+}) => Promise<{ valor: unknown; registro: RegistroInferencia; par: string }>;
+
+const texto = (v: unknown) => (typeof v === 'string' ? v : null);
 
 const nulo = (tipo: string) => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
 
@@ -85,27 +97,47 @@ const VACIO: FiltrosConsulta = {
  * Traduce una pregunta a filtros. Las reglas leen país, modalidad, marca, años y banderas; el modelo
  * (en este dispositivo) propone cliente y ciudad, y solo se aceptan si aparecen en la pregunta y
  * existen en la base. Así un modelo pequeño no puede inventar filtros.
+ *
+ * Con `delegar`, la propuesta la corre un par del equipo con un modelo más grande; si no hay par o no
+ * responde, corre aquí con Qwen3 1.7B. Las reglas y el anclaje son los mismos en los dos casos.
  */
-export async function interpretarConsulta(pregunta: string, conocidos: Conocidos): Promise<RespuestaConsulta> {
+export async function interpretarConsulta(pregunta: string, conocidos: Conocidos, delegar?: Delegar): Promise<RespuestaConsulta> {
   const t0 = performance.now();
   const reglas = porReglas(pregunta, conocidos);
   const n = normalizar(pregunta);
+  const history = [
+    { role: 'system' as const, content: SISTEMA },
+    { role: 'user' as const, content: pregunta },
+  ];
 
-  const propuesta = await completarJson<{ cliente: string | null; ciudad: string | null }>({
-    clave: 'extraccion',
-    tarea: 'consulta',
-    nombreEsquema: 'entidades',
-    esquema: ESQUEMA,
-    history: [
-      { role: 'system', content: SISTEMA },
-      { role: 'user', content: pregunta },
-    ],
-  });
+  let propuesta: Propuesta | null = null;
+  let modeloUsado = `${MODELOS.extraccion.nombre} · ${MODELOS.extraccion.cuantizacion}`;
+  let par: string | undefined;
+  if (delegar) {
+    const t1 = performance.now();
+    try {
+      const delegada = await delegar({ history, nombreEsquema: 'entidades', esquema: ESQUEMA });
+      const valor = (delegada.valor ?? {}) as Record<string, unknown>;
+      propuesta = { cliente: texto(valor.cliente), ciudad: texto(valor.ciudad) };
+      par = delegada.par;
+      modeloUsado = `${delegada.registro.modelo} · ${delegada.registro.cuantizacion}`;
+      await registrar({ ...delegada.registro, fecha: new Date().toISOString(), dondeCorre: 'par', par, duracionMs: Math.round(performance.now() - t1) });
+    } catch {
+      // Sin par disponible: la consulta sigue en este dispositivo.
+    }
+  }
+  propuesta ??= await completarJson<Propuesta>({ clave: 'extraccion', tarea: 'consulta', nombreEsquema: 'entidades', esquema: ESQUEMA, history });
 
   const cliente = propuesta.cliente && contiene(n, propuesta.cliente) ? clienteConocido(propuesta.cliente, conocidos.clientes) : null;
   const ciudad = propuesta.ciudad ? (conocidos.ciudades.find((c) => contiene(n, c) && normalizar(c) === normalizar(propuesta.ciudad!)) ?? null) : null;
 
   const filtros: FiltrosConsulta = { ...VACIO, cliente, ciudad, ...reglas };
   filtros.marca = marcaConocida(filtros.marca) ?? filtros.marca;
-  return { filtros, modelo: `${MODELOS.extraccion.nombre} · ${MODELOS.extraccion.cuantizacion} + reglas`, duracionMs: Math.round(performance.now() - t0) };
+  return {
+    filtros,
+    modelo: `${modeloUsado} + reglas`,
+    duracionMs: Math.round(performance.now() - t0),
+    dondeCorre: par ? 'par' : 'este-dispositivo',
+    ...(par ? { par } : {}),
+  };
 }

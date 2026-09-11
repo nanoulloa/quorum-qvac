@@ -51,8 +51,15 @@ Navegador (React)
   └─ /api → Servidor local (Fastify, Node)
         ├─ @qvac/sdk ── Parakeet (voz) · Qwen3 1.7B (extracción y consultas) · VisionPsy-Nano (placas)
         ├─ Almacén ─── un Hypercore solo-agregar por dispositivo (Corestore)
-        └─ Red ─────── Hyperswarm + canal Protomux para anunciar logs; replicación cifrada
+        └─ Red ─────── Hyperswarm + canal Protomux: anuncia logs, replica cifrado y lleva consultas delegadas
 ```
+
+- **Inferencia delegada solo para consultas.**
+  - Un dispositivo del equipo puede activar "Ofrecer consultas al equipo" en Red P2P. Las consultas de los demás corren entonces en ese dispositivo con Qwen3 4B, por el mismo canal cifrado de la sincronización.
+  - Si ese par no está o no responde en 30 s, la consulta corre en el propio dispositivo con Qwen3 1.7B.
+  - Fotos de placa (VisionPsy) y dictados nunca salen del dispositivo.
+  - En `perf.jsonl` y en Rendimiento cada inferencia dice si corrió aquí o en un par.
+  - Base declarada: `@qvac/sdk` 0.19 quitó el modo proveedor y la delegación por DHT (ver sus [notas de versión](https://github.com/tetherto/qvac/blob/main/packages/sdk/CHANGELOG.md)), así que Quorum implementa la delegación sobre su propio canal P2P en vez de partir de `examples/delegated-inference`.
 
 - **Un log por dispositivo.** Cada visita y cada decisión ("es el mismo equipo" / "son distintos") se agrega al Hypercore del dispositivo, firmada con su clave. Nadie puede escribir en el log de otro.
 - **Base instalada derivada.** La base (`GET /api/base`) se calcula uniendo todos los logs:
@@ -72,7 +79,7 @@ Medido en Apple M4 · 16 GB · macOS 26.5, en GPU, con `@qvac/sdk` 0.19.
 | Voz a texto | `PARAKEET_TDT_0_6B_V3_Q8_0` | Q8_0 | 14% de error por palabra (whisper-base: 25–31%) | ~1 s por 13 s de audio |
 | Extracción del dictado | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 100% de campos en 8 dictados de ajuste (uno sin hospital: no inventa el lugar) · 96% en 4 dictados nuevos | 3–5 s |
 | Lectura de placa | `VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` + `MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` | Q8_0 | 95% de campos en 30 placas sintéticas · 99% de los Confirmados correctos | 2,3 s (mediana) |
-| Consultas en lenguaje natural | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 80/80 filtros en 8 preguntas (solo con el modelo: 51/80) | ~0,5 s |
+| Consultas en lenguaje natural | `QWEN3_1_7B_INST_Q4` + reglas, o `QWEN3_4B_INST_Q4_K_M` en un par que ofrece consultas | Q4 · Q4_K_M | 80/80 filtros en 8 preguntas (solo con el modelo: 51/80) | ~0,5 s |
 | Sincronización P2P | Hyperswarm + Hypercore | — | Visita de A llega a B en 4,0 s (incluye encontrarse); de B a A en 0,5 s | — |
 
 - **Detalle de VisionPsy** por campo y por variación (rotada, desenfocada, reflejo, bajo contraste): [`docs/eval/vision.md`](docs/eval/vision.md).

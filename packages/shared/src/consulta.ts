@@ -17,4 +17,11 @@ export type FiltrosConsulta = {
 };
 
 /** Contrato de POST /api/consulta. */
-export type RespuestaConsulta = { filtros: FiltrosConsulta; modelo: string; duracionMs: number };
+export type RespuestaConsulta = {
+  filtros: FiltrosConsulta;
+  modelo: string;
+  duracionMs: number;
+  /** 'par': la propuesta del modelo la corrió otro dispositivo del equipo que ofrece consultas. */
+  dondeCorre: 'este-dispositivo' | 'par';
+  par?: string;
+};

@@ -35,7 +35,9 @@ describe('perfil guardado', () => {
     try {
       assert.equal(await leerPerfil(dir), null);
       await guardarPerfil(dir, { nombre: 'Ana Rodríguez', equipo: 'QRM-ABCD-EFGH-JKMN' });
-      assert.deepEqual(await leerPerfil(dir), { nombre: 'Ana Rodríguez', equipo: 'QRM-ABCD-EFGH-JKMN' });
+      assert.deepEqual(await leerPerfil(dir), { nombre: 'Ana Rodríguez', equipo: 'QRM-ABCD-EFGH-JKMN', ofreceConsultas: false });
+      await guardarPerfil(dir, { nombre: 'Ana Rodríguez', equipo: 'QRM-ABCD-EFGH-JKMN', ofreceConsultas: true });
+      assert.equal((await leerPerfil(dir))?.ofreceConsultas, true);
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
     }
