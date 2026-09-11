@@ -3,11 +3,18 @@
 .chip-group .eyebrow { margin-right: 6px; }
 .base { grid-template-columns: minmax(0, 1fr) 380px; }
 .base-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; }
-.barras { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-.barra { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 12px; }
+.pais-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.pais-head .faint { font-size: 12px; }
+.pais-cuerpo { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); align-items: center; gap: 24px; margin-top: 12px; }
+.barras { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.barra { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 12px; width: calc(100% + 16px); margin: 0 -8px; padding: 5px 8px; border-radius: 8px; text-align: left; transition: background-color 0.12s; }
+.barra:hover { background: var(--subtle); }
+.barra.elegida { background: var(--navy-tint); }
+.barra.elegida .barra-label { color: var(--ink); font-weight: 600; }
+.barras.con-eleccion .barra:not(.elegida) .barra-fill { opacity: 0.35; }
 .barra-label { font-size: 13px; color: var(--ink2); }
 .barra-track { display: flex; align-items: center; gap: 10px; }
-.barra-fill { height: 14px; min-width: 4px; border-radius: 0 4px 4px 0; background: var(--navy); transition: width 0.25s ease; }
+.barra-fill { display: block; height: 14px; min-width: 4px; border-radius: 0 4px 4px 0; background: var(--navy); transition: width 0.25s ease, opacity 0.2s; }
 .barra-valor { font-size: 13px; }
 .base-tabla { flex: 1; overflow: auto; }
 .base-cols { grid-template-columns: minmax(0, 1.8fr) 0.9fr 0.8fr 0.8fr 0.8fr 1fr 1.1fr; }
