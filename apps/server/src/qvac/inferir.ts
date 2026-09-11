@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { randomUUID } from 'node:crypto';
-import { completion, transcribe } from '@qvac/sdk';
+import { completion, textToSpeech, transcribe } from '@qvac/sdk';
 import type { RegistroInferencia } from '@quorum/shared';
 import { modelo, type ClaveModelo } from './modelos.ts';
 import { registrar, type Tarea } from './perf.ts';
@@ -109,5 +109,61 @@ export async function transcribir(audio: Buffer, contentType: string): Promise<{
     return { texto, duracionMs };
   } finally {
     await fs.rm(archivo, { force: true });
+  }
+}
+
+/** Frecuencia de salida de Supertonic sin el mejorador LavaSR (ejemplo `tts/supertonic-multilingual` del SDK). */
+const FRECUENCIA_VOZ = 44_100;
+
+/** WAV PCM de 16 bits mono, para que el navegador lo reproduzca directo. */
+function aWav(muestras: number[], frecuencia: number): Buffer {
+  const datos = Buffer.from(Int16Array.from(muestras).buffer);
+  const cabecera = Buffer.alloc(44);
+  cabecera.write('RIFF', 0);
+  cabecera.writeUInt32LE(36 + datos.length, 4);
+  cabecera.write('WAVE', 8);
+  cabecera.write('fmt ', 12);
+  cabecera.writeUInt32LE(16, 16);
+  cabecera.writeUInt16LE(1, 20);
+  cabecera.writeUInt16LE(1, 22);
+  cabecera.writeUInt32LE(frecuencia, 24);
+  cabecera.writeUInt32LE(frecuencia * 2, 28);
+  cabecera.writeUInt16LE(2, 32);
+  cabecera.writeUInt16LE(16, 34);
+  cabecera.write('data', 36);
+  cabecera.writeUInt32LE(datos.length, 40);
+  return Buffer.concat([cabecera, datos]);
+}
+
+/** Lee un texto en voz alta en este dispositivo (Supertonic, español) y lo devuelve como WAV. */
+export async function leerEnVozAlta(texto: string): Promise<{ wav: Buffer; duracionMs: number }> {
+  const m = await modelo('lectura');
+  const t0 = performance.now();
+  try {
+    const muestras = await textToSpeech({ modelId: m.id, text: texto, inputType: 'text', stream: false }).buffer;
+    const duracionMs = Math.round(performance.now() - t0);
+    await registrar({
+      fecha: new Date().toISOString(),
+      tarea: 'lectura',
+      modelo: m.nombre,
+      cuantizacion: m.cuantizacion,
+      dondeCorre: 'este-dispositivo',
+      cargaMs: m.cargaMs,
+      duracionMs,
+      prompt: texto,
+    });
+    return { wav: aWav(muestras, FRECUENCIA_VOZ), duracionMs };
+  } catch (error) {
+    await registrar({
+      fecha: new Date().toISOString(),
+      tarea: 'lectura',
+      modelo: m.nombre,
+      cuantizacion: m.cuantizacion,
+      dondeCorre: 'este-dispositivo',
+      duracionMs: Math.round(performance.now() - t0),
+      prompt: texto,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
 }

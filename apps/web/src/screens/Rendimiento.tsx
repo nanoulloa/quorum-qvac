@@ -10,6 +10,7 @@ const TAREA: Record<Tarea, string> = {
   placa: 'Lectura de placa',
   embeddings: 'Duplicados',
   consulta: 'Consultas',
+  lectura: 'Lectura en voz alta',
 };
 
 const mediana = (xs: number[]) => {

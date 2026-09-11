@@ -1,4 +1,4 @@
-export type Tarea = 'transcripcion' | 'extraccion' | 'pregunta' | 'placa' | 'embeddings' | 'consulta';
+export type Tarea = 'transcripcion' | 'extraccion' | 'pregunta' | 'placa' | 'embeddings' | 'consulta' | 'lectura';
 
 /** Una línea de perf.jsonl por inferencia (requisito del track QVAC Psy). Contrato de GET /api/perf. */
 export type RegistroInferencia = {

@@ -1,8 +1,8 @@
 import type { CampoPregunta, DatoExtraido, Estado, Evidencia, Extraccion, Faltante, Pregunta, Respuesta } from '@quorum/shared';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { IconCamera, IconCheck, IconMic, IconSend } from '../components/icons';
+import { IconCamera, IconCheck, IconMic, IconSend, IconSpeaker } from '../components/icons';
 import { PageHeader, StatusPill, Steps } from '../components/ui';
 import { useGrabadora } from '../components/useGrabadora';
 import { useBase } from '../datos/base';
@@ -121,6 +121,62 @@ export function Captura() {
   const [inicio, setInicio] = useState<string | null>(null);
   const [avisoCliente, setAvisoCliente] = useState(false);
   const campoTexto = useRef<HTMLInputElement>(null);
+
+  // Lectura en voz alta de la pregunta (#26). Se recuerda en este navegador para capturar con manos libres.
+  const [leerPregunta, setLeerPregunta] = useState(() => {
+    try {
+      return localStorage.getItem('quorum.leerPregunta') === 'si';
+    } catch {
+      return false;
+    }
+  });
+  const [leyendo, setLeyendo] = useState(false);
+  const audioPregunta = useRef<HTMLAudioElement | null>(null);
+
+  const detenerLectura = () => {
+    audioPregunta.current?.pause();
+    audioPregunta.current = null;
+    setLeyendo(false);
+  };
+
+  const leerEnVozAlta = async (textoPregunta: string) => {
+    detenerLectura();
+    setLeyendo(true);
+    try {
+      const url = URL.createObjectURL(await api.voz(textoPregunta));
+      const audio = new Audio(url);
+      audioPregunta.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (audioPregunta.current === audio) setLeyendo(false);
+      };
+      await audio.play();
+    } catch (e) {
+      // Si no se puede leer (modelo sin descargar o audio bloqueado), la pregunta sigue en pantalla.
+      console.error(e);
+      setLeyendo(false);
+    }
+  };
+
+  const alternarLectura = () => {
+    const activar = !leerPregunta;
+    setLeerPregunta(activar);
+    try {
+      localStorage.setItem('quorum.leerPregunta', activar ? 'si' : 'no');
+    } catch {
+      // Sin almacenamiento: la preferencia vale solo para esta sesión.
+    }
+    if (!activar) detenerLectura();
+    else if (pregunta) void leerEnVozAlta(pregunta.pregunta);
+  };
+
+  // Cada pregunta nueva se lee sola si la lectura está activa; al responder, se calla.
+  useEffect(() => {
+    if (!pregunta) return detenerLectura();
+    if (leerPregunta) void leerEnVozAlta(pregunta.pregunta);
+  }, [pregunta?.pregunta]);
+
+  useEffect(() => () => audioPregunta.current?.pause(), []);
 
   /** La hora de la visita es la del primer dictado; tras guardar, el próximo dictado abre una hora nueva. */
   const marcarInicio = () => setInicio((h) => (guardada ? horaLocal() : (h ?? horaLocal())));
@@ -298,7 +354,7 @@ export function Captura() {
       <PageHeader
         eyebrow={inicio ? `Visita en curso · ${inicio}` : 'Nueva visita'}
         title={encabezado.cliente ?? 'Nueva visita'}
-        subtitle={encabezado.lugar ?? 'Cliente sin identificar'}
+        subtitle={encabezado.lugar ?? (encabezado.cliente ? 'Ubicación sin identificar' : 'Cliente sin identificar')}
         actions={
           <button
             type="button"
@@ -378,7 +434,18 @@ export function Captura() {
               {(pregunta || preguntando) && (
                 <section className="question" aria-label="Pregunta de seguimiento" aria-busy={preguntando}>
                   <div className="question-body">
-                    <div className="question-kicker">{preguntando || !pregunta ? 'Pensando la pregunta…' : `Falta un dato clave · ${pregunta.razon}`}</div>
+                    <div className="question-kicker-fila">
+                      <div className="question-kicker">{preguntando || !pregunta ? 'Pensando la pregunta…' : `Falta un dato clave · ${pregunta.razon}`}</div>
+                      <button
+                        type="button"
+                        className={`question-voz${leerPregunta ? ' on' : ''}`}
+                        onClick={alternarLectura}
+                        aria-pressed={leerPregunta}
+                        title={leerPregunta ? 'Dejar de leer las preguntas en voz alta' : 'Leer las preguntas en voz alta, sin conexión'}
+                      >
+                        <IconSpeaker width={15} height={15} /> {leyendo ? 'Leyendo…' : leerPregunta ? 'Voz activada' : 'Leer en voz alta'}
+                      </button>
+                    </div>
                     <div className="question-text">{pregunta?.pregunta ?? '…'}</div>
                   </div>
                   <div className="question-answers">

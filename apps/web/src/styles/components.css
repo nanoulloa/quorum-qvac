@@ -38,6 +38,10 @@
 .question { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; border-radius: 20px; background: var(--q-bg); color: var(--q-fg); }
 .question-kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.72; }
 .question-text { font-family: var(--font-serif); font-size: 30px; line-height: 1.1; }
+.question-kicker-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 4px; }
+.question-voz { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38); color: var(--q-fg); font-size: 12px; font-weight: 500; transition: background-color 0.12s; }
+.question-voz:hover { background: rgba(255, 255, 255, 0.1); }
+.question-voz.on { background: var(--q-fg); color: var(--q-bg); box-shadow: none; }
 .answer { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38); color: var(--q-fg); font-size: 14px; font-weight: 500; transition: background-color 0.12s; }
 .answer:hover { background: rgba(255, 255, 255, 0.1); }
 .answer-icon { width: 40px; padding: 0; justify-content: center; background: var(--q-fg); color: var(--q-bg); box-shadow: none; }
