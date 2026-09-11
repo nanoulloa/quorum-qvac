@@ -1,4 +1,5 @@
 import type {
+  BaseInstalada,
   DecisionDuplicado,
   Extraccion,
   LecturaPlaca,
@@ -27,5 +28,6 @@ export const api = {
     pedir<LecturaPlaca>('/api/placa', { method: 'POST', headers: { 'Content-Type': foto.type || 'image/png' }, body: foto }),
   guardarObservacion: (observacion: NuevaObservacion) => pedir<ObservacionGuardada>('/api/observaciones', json(observacion)),
   decidir: (decision: NuevaDecision) => pedir<DecisionDuplicado>('/api/decisiones', json(decision)),
+  base: () => pedir<BaseInstalada>('/api/base', {}),
   consulta: (texto: string) => pedir<RespuestaConsulta>('/api/consulta', json({ texto })),
 };

@@ -16,6 +16,7 @@ export type EquipoUI = {
   marca: Dato;
   modelo: Dato;
   antiguedad: Dato;
+  serie: Dato;
   anios: number | null;
   testigos: TestigoUI[];
   evidencia: Evidencia;
@@ -85,6 +86,7 @@ function desdeApi(base: BaseInstalada) {
       marca: e.marca,
       modelo: e.modelo,
       antiguedad: { valor: textoAnios(e.antiguedad.valor), estado: e.antiguedad.estado },
+      serie: e.serie,
       anios: e.antiguedad.valor,
       testigos: [...testigos.values()].sort((a, b) => a.dias - b.dias),
       evidencia: e.evidencia,
@@ -101,6 +103,7 @@ function desdeEjemplo() {
     equipos: ejemplo.equipos.map<EquipoUI>((e) => ({
       ...e,
       refs: [e.id],
+      serie: { valor: null, estado: 'Desconocido' },
       testigos: e.testigos.map((t, i) => ({ ...ejemplo.personas[t], evidencia: i === 0 ? e.evidencia : 'voz', dias: e.dias + i * 4 })),
     })),
     distintos: [] as [string, string][],

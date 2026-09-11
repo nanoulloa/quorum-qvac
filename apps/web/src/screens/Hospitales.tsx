@@ -1,7 +1,7 @@
 import { PESOS } from '@quorum/shared';
 import { useState } from 'react';
 import { Link, NavLink, useParams } from 'react-router-dom';
-import { IconDownload, IconMic } from '../components/icons';
+import { IconCamera, IconDownload, IconMic } from '../components/icons';
 import { Avatars, ConfidenceBar, PageHeader, StatusPill, nivelConfianza } from '../components/ui';
 import { useBase } from '../datos/base';
 import { esRenovacion, estadoGeneral, evidenciaTexto, haceDias, sinVerificar } from '../datos/reglas';
@@ -54,6 +54,7 @@ export function Hospitales() {
           actions={
             <>
               <button type="button" className="btn btn-ghost"><IconDownload /> Exportar CSV</button>
+              <Link to={`/captura/placa?cliente=${cliente.id}`} className="btn btn-ghost"><IconCamera /> Foto de placa</Link>
               <Link to="/captura" className="btn btn-primary"><IconMic /> Nueva visita</Link>
             </>
           }
