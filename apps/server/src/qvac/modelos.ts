@@ -8,10 +8,11 @@ import {
   PARAKEET_TDT_0_6B_V3_Q8_0,
   QWEN3_1_7B_INST_Q4,
   QWEN3_4B_INST_Q4_K_M,
+  TTS_MULTILINGUAL_SUPERTONIC3_Q8_0,
   VISIONPSY_NANO_460M_MULTIMODAL_Q8_0,
 } from '@qvac/sdk';
 
-export type ClaveModelo = 'voz' | 'extraccion' | 'consultas' | 'vision' | 'embeddings';
+export type ClaveModelo = 'voz' | 'extraccion' | 'consultas' | 'vision' | 'embeddings' | 'lectura';
 
 type Definicion = {
   nombre: string;
@@ -19,7 +20,10 @@ type Definicion = {
   cargar: () => Promise<string>;
 };
 
-/** Todos los modelos corren en este dispositivo. VisionPsy nunca se delega (regla del track Psy). */
+/**
+ * Todos los modelos corren en este dispositivo. Solo las consultas pueden correr en un par del equipo que
+ * las ofrece (red/red.ts); VisionPsy nunca se delega (regla del track Psy).
+ */
 export const CATALOGO: Record<ClaveModelo, Definicion> = {
   // Parakeet v3: 14% de error por palabra en el dictado de prueba contra 25–31% de whisper-base (scripts/eval-voz.ts).
   voz: {
@@ -50,6 +54,16 @@ export const CATALOGO: Record<ClaveModelo, Definicion> = {
     nombre: 'embeddinggemma-300m',
     cuantizacion: 'Q8_0',
     cargar: () => loadModel({ modelSrc: EMBEDDINGGEMMA_300M_Q8_0 }),
+  },
+  // Supertonic 3 multilingüe en español: lee en voz alta la pregunta de seguimiento para capturar con manos libres.
+  lectura: {
+    nombre: 'supertonic-3',
+    cuantizacion: 'Q8_0',
+    cargar: () =>
+      loadModel({
+        modelSrc: TTS_MULTILINGUAL_SUPERTONIC3_Q8_0,
+        modelConfig: { ttsEngine: 'supertonic', language: 'es', voice: 'F1', ttsSpeed: 1.05, ttsNumInferenceSteps: 5 } as never,
+      }),
   },
 };
 

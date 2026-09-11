@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { extraer } from '../src/captura/extraccion.ts';
 import { leerPlaca } from '../src/placa/lectura.ts';
-import { transcribir } from '../src/qvac/inferir.ts';
+import { leerEnVozAlta, transcribir } from '../src/qvac/inferir.ts';
 import { cerrarModelos } from '../src/qvac/modelos.ts';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -47,6 +47,11 @@ await paso('extracción (Qwen3 1.7B)', async () => {
 await paso('lectura de placa (VisionPsy)', async () => {
   const r = await leerPlaca(await fs.readFile(path.join(fixtures, 'placa-philips.png')), 'image/png');
   return r.campos.map((c) => `${c.campo}=${c.valor}`).join(' · ');
+});
+
+await paso('pregunta en voz alta (Supertonic)', async () => {
+  const { wav } = await leerEnVozAlta('¿Qué marca tiene el tomógrafo?');
+  return `${Math.round(wav.length / 1024)} KB de audio WAV, ${((wav.length - 44) / 2 / 44_100).toFixed(1).replace('.', ',')} s`;
 });
 
 await cerrarModelos();

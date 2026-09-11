@@ -32,6 +32,15 @@ export const api = {
   extraer: (texto: string) => pedir<Extraccion>('/api/extraer', json({ texto })),
   pregunta: (extraccion: Extraccion, omitidos: Faltante[] = []) => pedir<Pregunta | null>('/api/pregunta', json({ extraccion, omitidos })),
   responder: (campo: CampoPregunta, texto: string) => pedir<Respuesta>('/api/respuesta', json({ campo, texto })),
+  /** Audio WAV con el texto leído en voz alta en este dispositivo. */
+  voz: async (texto: string) => {
+    const respuesta = await fetch('/api/voz', json({ texto }));
+    if (!respuesta.ok) {
+      const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
+      throw new Error(cuerpo.error ?? `El servidor local respondió ${respuesta.status}`);
+    }
+    return respuesta.blob();
+  },
   leerPlaca: (foto: Blob) =>
     pedir<LecturaPlaca>('/api/placa', { method: 'POST', headers: { 'Content-Type': foto.type || 'image/png' }, body: foto }),
   guardarObservacion: (observacion: NuevaObservacion) => pedir<ObservacionGuardada>('/api/observaciones', json(observacion)),

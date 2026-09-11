@@ -11,7 +11,7 @@ import { guardarPerfil, leerPerfil, normalizarCodigo, nuevoCodigo } from './dato
 import { sembrar } from './datos/semilla.ts';
 import { construirBase } from './datos/vista.ts';
 import { leerPlaca } from './placa/lectura.ts';
-import { completarJsonConRegistro, transcribir } from './qvac/inferir.ts';
+import { completarJsonConRegistro, leerEnVozAlta, transcribir } from './qvac/inferir.ts';
 import { cerrarModelos, modelo } from './qvac/modelos.ts';
 import { leerRegistro } from './qvac/perf.ts';
 import { Red, SECRETO_EQUIPO } from './red/red.ts';
@@ -98,6 +98,14 @@ app.post<{ Body: { campo?: CampoPregunta; texto?: string } }>('/api/respuesta', 
   const { campo, texto } = req.body ?? {};
   if (!campo || !texto?.trim()) return reply.code(400).send({ error: 'Faltan "campo" y "texto".' });
   return interpretarRespuesta(campo, texto);
+});
+
+// Lee en voz alta la pregunta de seguimiento, en este dispositivo, para capturar con manos libres.
+app.post<{ Body: { texto?: string } }>('/api/voz', async (req, reply) => {
+  const texto = req.body?.texto?.trim();
+  if (!texto || texto.length > 400) return reply.code(400).send({ error: 'Envía un "texto" de hasta 400 caracteres.' });
+  const { wav } = await leerEnVozAlta(texto);
+  return reply.type('audio/wav').send(wav);
 });
 
 app.post('/api/placa', async (req, reply) => {

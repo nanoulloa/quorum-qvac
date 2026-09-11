@@ -69,3 +69,6 @@ export const IconSend = (p: P) => (
 export const IconKey = (p: P) => (
   <svg {...base} {...p}><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M17 6l2 2M15 8l2 2" /></svg>
 );
+export const IconSpeaker = (p: P) => (
+  <svg {...base} {...p}><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+);
