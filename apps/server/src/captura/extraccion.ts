@@ -1,4 +1,4 @@
-import type { DatoExtraido, Extraccion, Modalidad } from '@quorum/shared';
+import type { AntiguedadExtraida, DatoExtraido, Extraccion, Modalidad } from '@quorum/shared';
 import { completarJson } from '../qvac/inferir.ts';
 import type { ClaveModelo } from '../qvac/modelos.ts';
 import { CATALOGO, MARCA_DE_MODELO } from './catalogo.ts';
@@ -160,9 +160,13 @@ function corregir(crudo: Crudo, texto: string, anioActual: number): EquipoCrudo[
 const dicho = <T>(valor: T | null): DatoExtraido<T> => ({ valor, estado: valor === null ? 'Desconocido' : 'Reportado' });
 
 /** La duda la decide una regla sobre las palabras del dictado, no el modelo. */
-function antiguedad(e: EquipoCrudo): DatoExtraido<number> {
+function antiguedad(e: EquipoCrudo): AntiguedadExtraida {
   if (e.antiguedad_anios === null || e.antiguedad_anios < 0) return { valor: null, estado: 'Desconocido' };
-  return { valor: e.antiguedad_anios, estado: e.antiguedad_frase && DUDA.test(e.antiguedad_frase) ? 'Estimado' : 'Reportado' };
+  return {
+    valor: e.antiguedad_anios,
+    estado: e.antiguedad_frase && DUDA.test(e.antiguedad_frase) ? 'Estimado' : 'Reportado',
+    frase: e.antiguedad_frase ?? undefined,
+  };
 }
 
 const MODELO_EXTRACCION = (process.env.QUORUM_MODELO_EXTRACCION as ClaveModelo | undefined) ?? 'extraccion';
