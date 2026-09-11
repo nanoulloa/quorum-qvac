@@ -1,6 +1,7 @@
 import type { AntiguedadExtraida, DatoExtraido, Extraccion, Modalidad } from '@quorum/shared';
 import { completarJson } from '../qvac/inferir.ts';
 import type { ClaveModelo } from '../qvac/modelos.ts';
+import { anclarLugar } from './anclaje.ts';
 import { CATALOGO, MARCA_DE_MODELO } from './catalogo.ts';
 import { clienteConocido, sinCiudad } from './clientes.ts';
 import { paisCanonico } from './paises.ts';
@@ -98,6 +99,9 @@ function aniosEnOracion(oracion: string, anioActual: number): { anios: number; f
   if (/\b(el|del) ano pasado\b/.test(n)) return { anios: 1, frase: 'el año pasado' };
   const anio = oracion.match(/\b(?:instal\w*|fabric\w*|compr\w*|desde)\D{0,15}((?:19|20)\d{2})\b/i);
   if (anio) return { anios: anioActual - Number(anio[1]), frase: anio[0] };
+  // "Un tomógrafo GE Revolution de 2019": el año del equipo, sin verbo.
+  const deAnio = oracion.match(/\b(?:de|del año)\s+((?:19|20)\d{2})\b/i);
+  if (deAnio && Number(deAnio[1]) <= anioActual) return { anios: anioActual - Number(deAnio[1]), frase: deAnio[0] };
   return null;
 }
 
@@ -128,6 +132,14 @@ function corregir(crudo: Crudo, texto: string, anioActual: number): EquipoCrudo[
     if (e.marca && !e.modelo) {
       const candidatos = (CATALOGO[e.marca] ?? []).filter((m) => mencionaParecido(texto, m) && !equipos.some((o) => o.modelo?.toLowerCase() === m.toLowerCase()));
       if (candidatos.length === 1) e.modelo = candidatos[0];
+    }
+  }
+
+  // Antigüedad imposible: a veces el modelo devuelve un año en vez de años. Se descarta y la lee la regla de abajo.
+  for (const e of equipos) {
+    if (e.antiguedad_anios !== null && (e.antiguedad_anios < 0 || e.antiguedad_anios > 60)) {
+      e.antiguedad_anios = null;
+      e.antiguedad_frase = null;
     }
   }
 
@@ -183,12 +195,14 @@ export async function extraer(texto: string, anioActual = new Date().getFullYear
       { role: 'user', content: texto },
     ],
   });
-  const ciudad = limpiar(crudo.ciudad);
-  const cliente = sinCiudad(limpiar(crudo.cliente), ciudad);
+  // El modelo a veces rellena el lugar con el del ejemplo del prompt: solo queda lo que el dictado nombra.
+  const lugar = anclarLugar(texto, { cliente: limpiar(crudo.cliente), ciudad: limpiar(crudo.ciudad), pais: limpiar(crudo.pais) });
+  const ciudad = lugar.ciudad;
+  const cliente = sinCiudad(lugar.cliente, ciudad);
   return {
     cliente: dicho(clienteConocido(cliente) ?? cliente),
     ciudad: dicho(ciudad),
-    pais: dicho(paisCanonico(limpiar(crudo.pais))),
+    pais: { valor: paisCanonico(lugar.pais.valor), estado: lugar.pais.estado },
     equipos: corregir(crudo, texto, anioActual).map((e) => ({
       modalidad: e.modalidad,
       cantidad: e.cantidad,

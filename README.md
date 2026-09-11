@@ -65,7 +65,7 @@ Medido en Apple M4 · 16 GB · macOS 26.5, en GPU, con `@qvac/sdk` 0.19.
 | Tarea | Modelo | Cuantización | Resultado | Latencia |
 |---|---|---|---|---|
 | Voz a texto | `PARAKEET_TDT_0_6B_V3_Q8_0` | Q8_0 | 14% de error por palabra (whisper-base: 25–31%) | ~1 s por 13 s de audio |
-| Extracción del dictado | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 100% de campos en 6 dictados de ajuste · 96% en 4 dictados nuevos | 3–5 s |
+| Extracción del dictado | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 100% de campos en 8 dictados de ajuste (uno sin hospital: no inventa el lugar) · 96% en 4 dictados nuevos | 3–5 s |
 | Lectura de placa | `VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` + `MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` | Q8_0 | 95% de campos en 30 placas sintéticas · 99% de los Confirmados correctos | 2,3 s (mediana) |
 | Consultas en lenguaje natural | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 80/80 filtros en 8 preguntas (solo con el modelo: 51/80) | ~0,5 s |
 | Sincronización P2P | Hyperswarm + Hypercore | — | Visita de A llega a B en 4,0 s (incluye encontrarse); de B a A en 0,5 s | — |

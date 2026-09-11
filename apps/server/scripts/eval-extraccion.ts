@@ -5,7 +5,8 @@ import { cerrarModelos } from '../src/qvac/modelos.ts';
 
 type EquipoEsperado = { modalidad: Modalidad; cantidad: number; marca: string | null; modelo: string | null; antiguedad: number | null; estadoAntiguedad: Estado };
 /** `nuevo`: escrito después de ajustar las reglas; mide la precisión sobre dictados no vistos. */
-type Caso = { dictado: string; cliente: string; ciudad: string | null; pais: string | null; equipos: EquipoEsperado[]; nuevo?: true };
+/** `lugarNulo`: el dictado no nombra ciudad ni país, así que deben salir en null (#44). */
+type Caso = { dictado: string; cliente: string | null; ciudad: string | null; pais: string | null; equipos: EquipoEsperado[]; nuevo?: true; lugarNulo?: true };
 
 const ANIO = 2026;
 
@@ -78,6 +79,21 @@ const CASOS: Caso[] = [
     cliente: 'Luz Andina', ciudad: 'Quito', pais: null,
     equipos: [{ modalidad: 'Tomografía', cantidad: 1, marca: 'Philips', modelo: null, antiguedad: 12, estadoAntiguedad: 'Reportado' }],
   },
+  {
+    // #44: sin hospital en el dictado, el modelo copiaba el del ejemplo del prompt.
+    dictado: 'Hay dos resonadores Philips y un tomógrafo de unos seis años.',
+    cliente: null, ciudad: null, pais: null, lugarNulo: true,
+    equipos: [
+      { modalidad: 'Resonancia magnética', cantidad: 2, marca: 'Philips', modelo: null, antiguedad: null, estadoAntiguedad: 'Desconocido' },
+      { modalidad: 'Tomografía', cantidad: 1, marca: null, modelo: null, antiguedad: 6, estadoAntiguedad: 'Estimado' },
+    ],
+  },
+  {
+    // "de 2019" sin verbo: el modelo devolvía el año como antigüedad.
+    dictado: 'Estoy en la Clínica San Rafael de Medellín, Colombia. Tienen un tomógrafo GE Revolution de 2019.',
+    cliente: 'San Rafael', ciudad: 'Medellín', pais: 'Colombia',
+    equipos: [{ modalidad: 'Tomografía', cantidad: 1, marca: 'GE', modelo: 'Revolution', antiguedad: 7, estadoAntiguedad: 'Reportado' }],
+  },
 ];
 
 const norm = (s: string | null | undefined) => (s ?? '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
@@ -102,6 +118,7 @@ for (const [i, caso] of CASOS.entries()) {
   marcar(contiene(r.cliente.valor, caso.cliente), `cliente=${r.cliente.valor}`);
   marcar(caso.ciudad === null || contiene(r.ciudad.valor, caso.ciudad), `ciudad=${r.ciudad.valor}`);
   marcar(caso.pais === null || contiene(r.pais.valor, caso.pais), `pais=${r.pais.valor}`);
+  if (caso.lugarNulo) marcar(r.ciudad.valor === null && r.pais.valor === null, `lugar inventado=${r.ciudad.valor}/${r.pais.valor}`);
   marcar(r.equipos.length === caso.equipos.length, `equipos=${r.equipos.length}/${caso.equipos.length}`);
 
   const disponibles = [...r.equipos];
