@@ -47,7 +47,7 @@ Al momento de escribirla siguen abiertos los PR [#32](https://github.com/nanoull
 | 3.2 | VisionPsy corre local, nunca delegado | Leer `apps/server/src/placa/lectura.ts:49-52` | ✅ la lectura solo llama a `completarJson`, que registra `dondeCorre: 'este-dispositivo'` (`apps/server/src/qvac/inferir.ts:43`). No existe ruta de delegación: `git grep -n "'par'"` solo aparece en tipos y en la pantalla de rendimiento |
 | 3.3 | Licencia MIT o Apache | ver 1.7 | ✅ Apache-2.0 |
 | 3.4 | Registro de rendimiento con carga, tokens, TTFT y tokens/s | `/rendimiento` o `GET /api/perf` | ✅ campos en `packages/shared/src/perf.ts:4-19`; se llenan en `apps/server/src/qvac/inferir.ts:44-51` (`cargaMs`, `tokensEntrada`, `tokensSalida`, `ttftMs`, `tokensPorSegundo`, `backend`) y se leen en `apps/server/src/qvac/perf.ts:21-35` |
-| 3.5 | El registro está en el repo | `git ls-files \| grep -i perf` | ❌ `perf.jsonl` está ignorado (`.gitignore:4`) y no hay ninguno versionado. Lo agrega el PR #33 como `docs/perf/perf-apple-m4.jsonl` · issue [#30](https://github.com/nanoulloa/quorum-qvac/issues/30) |
+| 3.5 | El registro está en el repo | `git ls-files \| grep -i perf` | ✅ `docs/perf/perf-apple-m4.jsonl`, `docs/perf/smoke-apple-m4.json` y `docs/perf/README.md` versionados (PR #33 mergeado en `4dc83ac`). El `perf.jsonl` que escribe el servidor sigue ignorado (`.gitignore:4`), que es lo correcto: el del repo es la copia publicada |
 | 3.6 | Evaluación de VisionPsy en el repo | `docs/eval/vision.md` y `docs/eval/vision.json` | ✅ ambos versionados (`git ls-tree -r --name-only origin/main -- docs`): 30 placas sintéticas, acierto por campo y por variación |
 | 3.7 | README con hardware, modelos y cuantización | Tabla "Modelos y resultados medidos" del `README.md` | ⚠️ la tabla existe (Apple M4 · 16 GB · macOS 26.5, con cuantización por modelo) pero `docs/perf/smoke-apple-m4.json` todavía registra `WHISPER_BASE_Q8_0` en transcripción mientras el código y el README usan Parakeet. **Rehacer la prueba de humo o fechar el archivo antes de entregar** · dueño: issue #28 |
 | 3.8 | Flujo de usuario completo, no demo suelto | Recorrer captura → placa → hospital → base → consultas → red → rendimiento | ⚠️ las siete pantallas existen (`apps/web/src/App.tsx:16-23`); falta el recorrido cronometrado de punta a punta contra el servidor local |
@@ -68,7 +68,7 @@ Al momento de escribirla siguen abiertos los PR [#32](https://github.com/nanoull
 
 ## 5 · Últimos 60 minutos
 
-1. `git fetch origin main` y confirmar que entraron los PR #32, #33 y #34. Si el #33 no entró, el punto 3.5 queda rojo.
+1. `git fetch origin main` y confirmar que sigue estando `docs/perf/perf-apple-m4.jsonl` (entró con el PR #33 en `4dc83ac`).
 2. Repo público: abrir `https://github.com/nanoulloa/quorum-qvac` en una ventana privada, sin sesión.
 3. README al día: base preexistente, modelos con cuantización, hardware, APIs remotas ninguna, licencia. Resolver el desfase de 3.7.
 4. Confirmar que `docs/perf/*.jsonl` y `docs/eval/vision.md` están versionados y coinciden con lo que dice el README.
