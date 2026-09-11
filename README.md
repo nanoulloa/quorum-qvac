@@ -11,6 +11,10 @@ Los ingenieros de servicio y vendedores de Philips visitan hospitales todos los 
 - **Consulta y ubica la base.** Preguntas en lenguaje natural, escritas o por voz, un mapa por país y exportación a CSV. Si un colega ofrece su laptop, las consultas corren allá con un modelo más grande.
 - **Sin nube.** Toda la inferencia corre con `@qvac/sdk` en los dispositivos del equipo; fotos y dictados nunca salen de cada uno. No hay APIs de IA remotas.
 
+**Pitch deck:** [`docs/entrega/pitch-deck.pdf`](docs/entrega/pitch-deck.pdf)
+
+No hay una versión en la nube a propósito: la IA corre en la laptop de cada ingeniero. Para probarlo, sigue [Correr en local](#correr-en-local).
+
 ## Correr en local
 
 Requisitos: Node ≥ 22.17, npm ≥ 10.9 y ~3 GB libres para los modelos (se descargan la primera vez).
