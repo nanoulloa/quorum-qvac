@@ -19,3 +19,9 @@
 .lista-item-main { flex: 1; display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
 .lista-item-side { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; }
 .lista-vacia { margin: 0; padding: 12px 20px 18px; font-size: 13px; }
+
+/* En laptops la columna lateral se angosta para que los nombres de la tabla no se partan. */
+@media (max-width: 1439px) {
+  .base { grid-template-columns: minmax(0, 1fr) 320px; }
+  .base-cols .section-title { font-size: 14px; }
+}

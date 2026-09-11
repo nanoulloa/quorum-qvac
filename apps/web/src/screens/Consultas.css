@@ -21,3 +21,10 @@
 .reciente { text-align: left; padding: 11px 0; border-top: 1px solid var(--hair); font-size: 13px; color: var(--ink2); transition: color 0.12s; }
 .reciente:hover, .reciente.on { color: var(--ink); }
 .reciente.on { font-weight: 500; }
+
+/* En laptops las preguntas de ejemplo se angostan para que la tabla de resultados respire. */
+@media (max-width: 1439px) {
+  .consultas { grid-template-columns: minmax(0, 1fr) 260px; }
+  .consulta-cols { grid-template-columns: minmax(0, 1.9fr) 1fr 0.9fr 1.3fr 0.8fr 1fr 0.9fr; }
+  .consulta-cols .section-title { font-size: 14px; }
+}
