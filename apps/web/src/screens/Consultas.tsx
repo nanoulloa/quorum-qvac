@@ -172,7 +172,10 @@ export function Consultas() {
 
           <section className="card resultados">
             <div className="resultados-head">
-              <span><span className="section-title">{resultados.length} equipos</span> <span className="faint">en {nClientes} clientes</span></span>
+              <span>
+                <span className="section-title">{resultados.length} {resultados.length === 1 ? 'equipo' : 'equipos'}</span>{' '}
+                <span className="faint">en {nClientes} {nClientes === 1 ? 'cliente' : 'clientes'}</span>
+              </span>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => exportarCsv('consulta', resultados, clientes)} disabled={resultados.length === 0}>
                 <IconDownload /> Exportar CSV
               </button>

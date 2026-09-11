@@ -26,6 +26,12 @@ const celda = (v: string | number | null | undefined) => {
   return /[",;\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+/** Fecha local AAAA-MM-DD (toISOString daría la de UTC). */
+const hoy = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 /** Descarga los equipos como CSV. Lleva BOM para que Excel respete los acentos. */
 export function exportarCsv(nombre: string, equipos: EquipoUI[], clientes: ClienteUI[]) {
   const porId = new Map(clientes.map((c) => [c.id, c]));
@@ -53,7 +59,7 @@ export function exportarCsv(nombre: string, equipos: EquipoUI[], clientes: Clien
   });
   const csv = [COLUMNAS, ...filas].map((fila) => fila.map(celda).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8' }));
-  const enlace = Object.assign(document.createElement('a'), { href: url, download: `quorum-${nombre}-${new Date().toISOString().slice(0, 10)}.csv` });
+  const enlace = Object.assign(document.createElement('a'), { href: url, download: `quorum-${nombre}-${hoy()}.csv` });
   enlace.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
