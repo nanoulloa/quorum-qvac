@@ -1,10 +1,15 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import type { NuevaObservacion } from '@quorum/shared';
 import { extraer } from './captura/extraccion.ts';
+import { Almacen } from './datos/almacen.ts';
+import { sembrar } from './datos/semilla.ts';
+import { construirBase } from './datos/vista.ts';
 import { leerPlaca } from './placa/lectura.ts';
 import { transcribir } from './qvac/inferir.ts';
 import { cerrarModelos } from './qvac/modelos.ts';
 import { leerRegistro } from './qvac/perf.ts';
+import { Red } from './red/red.ts';
 
 const app = Fastify({ logger: { level: 'info' }, bodyLimit: 30 * 1024 * 1024 });
 
@@ -14,8 +19,13 @@ app.addContentTypeParser(/^(audio|image)\//, { parseAs: 'buffer' }, (_req, body,
 
 const sinCuerpo = (body: unknown) => !Buffer.isBuffer(body) || body.byteLength === 0;
 
+const almacen = new Almacen();
+await almacen.abrir();
+const red = new Red(almacen);
+if (process.env.QUORUM_P2P !== 'off') red.iniciar();
+
 // Toda la inferencia corre en este proceso con @qvac/sdk. Nunca se llama a una API de IA remota.
-app.get('/api/health', async () => ({ ok: true, inferencia: 'local' }));
+app.get('/api/health', async () => ({ ok: true, inferencia: 'local', dispositivo: almacen.nombre }));
 
 app.post('/api/transcribir', async (req, reply) => {
   if (sinCuerpo(req.body)) {
@@ -37,10 +47,34 @@ app.post('/api/placa', async (req, reply) => {
   return leerPlaca(req.body as Buffer, req.headers['content-type'] ?? 'image/png');
 });
 
+app.get('/api/observaciones', async () => almacen.observaciones());
+
+app.post<{ Body: NuevaObservacion }>('/api/observaciones', async (req, reply) => {
+  const o = req.body;
+  if (!o?.cliente || !o.ciudad || !o.pais || !Array.isArray(o.equipos)) {
+    return reply.code(400).send({ error: 'Observación incompleta: faltan cliente, ciudad, país o equipos.' });
+  }
+  const guardada = await almacen.guardar(o);
+  red.evento(`Visita guardada en este dispositivo · ${o.cliente.valor ?? 'cliente sin identificar'}`);
+  return guardada;
+});
+
+app.get('/api/base', async () => construirBase(await almacen.observaciones()));
+
+app.get('/api/red', async () => red.estado());
+
+app.post('/api/semilla', async () => {
+  const sembradas = await sembrar(almacen);
+  if (sembradas) red.anunciar();
+  return { sembradas };
+});
+
 app.get<{ Querystring: { limite?: string } }>('/api/perf', async (req) => leerRegistro(Number(req.query.limite ?? 100)));
 
 const cerrar = async () => {
   await app.close();
+  await red.cerrar();
+  await almacen.cerrar();
   await cerrarModelos();
   process.exit(0);
 };
