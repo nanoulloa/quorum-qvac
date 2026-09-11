@@ -1,0 +1,19 @@
+/* Primer uso: pantalla completa, fuera del marco de la app. */
+.primer-uso { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: var(--bg); }
+.primer-uso-editar { min-height: 0; padding: 0; justify-content: flex-start; background: none; }
+.primer-uso-card { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 18px; padding: 32px; }
+.primer-uso-card .muted, .primer-uso-card .note { margin: 0; line-height: 1.55; }
+.primer-uso-marca { display: flex; align-items: center; gap: 12px; }
+.primer-uso-logo { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; padding-top: 2px; background: var(--logo-bg); color: var(--logo-fg); font-family: var(--font-serif); font-size: 28px; line-height: 1; }
+.primer-uso-campo { display: flex; flex-direction: column; gap: 8px; }
+.primer-uso-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.primer-uso-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+/* El código se lee en voz alta o se copia: grande, monoespaciado y fácil de seleccionar. */
+.codigo-equipo { display: block; padding: 16px 20px; border-radius: 12px; background: var(--navy-tint); color: var(--navy); font-size: 22px; letter-spacing: 0.08em; text-align: center; white-space: nowrap; user-select: all; }
+
+/* Panel "Agregar dispositivo" en Red P2P. */
+.agregar-dispositivo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px; }
+.agregar-pasos { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink2); }
+.agregar-codigo { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.agregar-acciones { display: flex; align-items: center; gap: 14px; }

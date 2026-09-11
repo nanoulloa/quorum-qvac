@@ -18,8 +18,8 @@
 .duplicado-acciones .faint { flex: 1; font-size: 13px; }
 .actividad { display: flex; flex-direction: column; gap: 2px; }
 .actividad .eyebrow { margin-bottom: 8px; }
-.actividad-fila { display: grid; grid-template-columns: 48px 8px minmax(0, 1fr); align-items: center; gap: 12px; padding: 7px 0; font-size: 13px; }
-.actividad-fila .mono { font-size: 12px; }
+.actividad-fila { display: grid; grid-template-columns: max-content 8px minmax(0, 1fr); align-items: center; gap: 12px; padding: 7px 0; font-size: 13px; }
+.actividad-fila .mono { font-size: 12px; white-space: nowrap; }
 .actividad-punto { width: 7px; height: 7px; border-radius: 4px; background: var(--navy); }
 .estado-red { display: flex; flex-direction: column; gap: 8px; }
 .estado-red p { margin: 0 0 8px; font-size: 14px; }

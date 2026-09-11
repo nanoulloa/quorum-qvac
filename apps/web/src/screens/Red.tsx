@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { api } from '../api';
 import { IconArrowRight, IconCheck, IconMinus, IconQr } from '../components/icons';
 import { PageHeader } from '../components/ui';
 import { abreviarClave, iniciales, useBase, type EquipoUI } from '../datos/base';
 import { haceDias } from '../datos/reglas';
+import { AgregarDispositivo, type ContextoPerfil } from './PrimerUso';
 import './Red.css';
 
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
@@ -52,6 +53,8 @@ function comparar(a: EquipoUI, b: EquipoUI): Comparacion[] {
 export function Red() {
   const { red, equipos, clientes, distintos, origen, recargar } = useBase();
   const [decidiendo, setDecidiendo] = useState(false);
+  const { perfil } = useOutletContext<ContextoPerfil>();
+  const [agregando, setAgregando] = useState(false);
   const pares = red?.dispositivos.filter((d) => !d.esEste) ?? [];
   const enLinea = pares.filter((d) => d.enLinea).length;
   const duplicados = useMemo(() => posiblesDuplicados(equipos, distintos), [equipos, distintos]);
@@ -84,8 +87,14 @@ export function Red() {
         eyebrow="Sistema"
         title="Red P2P"
         subtitle="Tu equipo sincroniza de dispositivo a dispositivo, sin servidor central."
-        actions={<button type="button" className="btn btn-ghost"><IconQr /> Agregar dispositivo</button>}
+        actions={
+          <button type="button" className={`btn ${agregando ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setAgregando((v) => !v)} aria-expanded={agregando}>
+            <IconQr /> Agregar dispositivo
+          </button>
+        }
       />
+
+      {agregando && <AgregarDispositivo equipo={perfil?.equipo ?? null} />}
 
       <div className="split red">
         <div className="red-col">
