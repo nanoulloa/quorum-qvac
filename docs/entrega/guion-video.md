@@ -24,16 +24,29 @@ El peso está donde puntúa: núcleo técnico (2, 4, 6, 8) = 3:20 de 4:45.
 Laptop A (la que se graba):
 
 ```bash
-nvm use && npm install
-QUORUM_EQUIPO="<secreto-del-dia>" QUORUM_NOMBRE="Carlos Méndez" npm run dev
+nvm use && npm ci
+npm run dev
+```
+
+En el navegador aparece **Bienvenido a Quorum**: escribe `Carlos Méndez`, elige **Crear un equipo**
+y copia el código `QRM-XXXX-XXXX-XXXX`. Después, la base de ejemplo:
+
+```bash
 npm run semilla -w @quorum/server    # POST /api/semilla · 18 visitas ficticias
 ```
 
 Laptop B (solo aparece en la toma 6, no se siembra):
 
 ```bash
-QUORUM_EQUIPO="<el mismo secreto>" QUORUM_NOMBRE="Ana Ríos" npm run dev
+npm run dev
 ```
+
+Mismo primer uso: nombre `Ana Ríos`, **Unirme con un código**, y pegar el código de A. Arranca vacía,
+que es justo lo que la toma 6 necesita mostrar.
+
+El perfil queda en `apps/server/.quorum/perfil.json` de cada máquina. Para volver a ver la pantalla
+de bienvenida, borrar ese archivo. El código se recupera en cualquier momento desde
+**Red P2P → Agregar dispositivo**.
 
 - **Precalentar los modelos antes de grabar.** La primera carga tarda decenas de segundos
   (`docs/perf/smoke-apple-m4.json`: visión 28.682 ms, extracción 64.254 ms). Dicta una visita,
@@ -42,8 +55,8 @@ QUORUM_EQUIPO="<el mismo secreto>" QUORUM_NOMBRE="Ana Ríos" npm run dev
 - **Modo avión encendido en la laptop A** desde antes de la toma 1 y hasta la toma 6.
 - Ventana del navegador a 1440×900, sin barra de marcadores, pestaña única en `http://localhost:5173`.
 - **Tema claro** en toda la grabación (el conmutador está abajo en el riel izquierdo).
-- `/captura` carga con un dictado de ejemplo ya puesto. Dicta de una: el resultado real lo reemplaza.
-  No digas que la pantalla está vacía.
+- **El primer uso se hace ANTES de grabar, en las dos laptops.** La toma 1 empieza con `/captura`
+  ya abierta, no con la bienvenida: el código de equipo no debe quedar grabado.
 - Fuera de cámara: terminales con rutas de usuario, notificaciones, nombres de clientes reales,
   cualquier cifra de dinero. Los datos de la demo son ficticios y así se dicen.
 
@@ -51,11 +64,11 @@ QUORUM_EQUIPO="<el mismo secreto>" QUORUM_NOMBRE="Ana Ríos" npm run dev
 
 | # | Dur. | En pantalla | Ruta y clics | Narración |
 |---|---|---|---|---|
-| 1 | 0:25 | Laptop A, `/captura`. Plano de la pantalla completa; a los 0:10, plano corto del icono de modo avión | Abrir `http://localhost:5173` (redirige a `/captura`) | "Un ingeniero de campo sale de un hospital y sabe qué equipos hay adentro. Ese dato se pierde. Quorum lo captura hablando, y lo procesa en la misma laptop. Enciendo el modo avión ahora. Nada de lo que sigue sale de este dispositivo." |
+| 1 | 0:25 | Laptop A, `/captura` **vacía**: "Dicta o escribe lo que viste y Quorum arma el registro" y el Registro sin equipos. A los 0:10, plano corto del icono de modo avión | Abrir `http://localhost:5173` (con el perfil ya creado, redirige a `/captura`) | "Un ingeniero de campo sale de un hospital y sabe qué equipos hay adentro. Ese dato se pierde. Quorum lo captura hablando, y lo procesa en la misma laptop. Enciendo el modo avión ahora. Nada de lo que sigue sale de este dispositivo." |
 | 2a | 0:20 | Botón de micrófono, onda en movimiento, reloj corriendo, texto "Grabando · la voz no sale del dispositivo" | `/captura` → clic en el botón de micrófono | "Dicto lo que vi." Luego dictar: *"Estoy en el Hospital DemoCare Pacific, en Ciudad de Panamá. Hay dos resonadores y un tomógrafo. Uno de los resonadores es Philips, un Ingenia, que parece de unos ocho años. El tomógrafo lo cambiaron el año pasado."* |
 | 2b | 0:15 | Pie de la transcripción: "Transcribiendo en este dispositivo…", luego "Extrayendo datos…"; pasos Dictado → Extracción | Clic en el mismo botón para terminar | "Parakeet transcribe. Qwen extrae. Los dos corren aquí." |
 | 2c | 0:30 | Transcripción con los valores subrayados y su etiqueta (cliente, ciudad, marca, modelo). Panel Registro: tres equipos con Marca, Modelo, Antigüedad y su estado. Pie: `parakeet 1,2 s · qwen3-1.7b 4,1 s · en este dispositivo` (los tiempos son los de la toma) | Ninguno; dejar que el panel se llene | "Cliente, ciudad, país. Tres equipos, con marca, modelo y antigüedad. Cada dato lleva su estado: Reportado si lo dijo la persona, Estimado si dudó, Desconocido si no lo dijo. Del segundo resonador no dijo nada, y eso no rompe nada." |
-| 3 | 0:20 | Tarjeta "Falta un dato clave · resonador magnético 02", pregunta "¿Cuántos años tiene, más o menos?" con tres respuestas. Después, "Anotado: 5 a 10 años como Estimado". Botón Guardar visita → "Visita guardada" y la línea de firma | `/captura` → clic en "5 a 10" → clic en "Guardar visita" | "Cuando falta algo, Quorum lo pide. La respuesta entra como Estimado, no como dato duro. Guardo: queda firmada por este dispositivo y se comparte al sincronizar." |
+| 3 | 0:20 | Tarjeta azul: kicker "Falta un dato clave · " con la razón que redactó el modelo, pregunta **"¿Cuántos años tiene el segundo resonador?"**, y las respuestas `Menos de 5` · `5 a 10` · `Más de 10` · `No sé`, más el campo de texto y el micrófono. Después, "Anotado: 5 a 10 como Estimado" y el Registro con `7 años` Estimado. Botón Guardar visita → "Visita guardada" y la línea de firma | `/captura` → clic en "5 a 10" → clic en "Guardar visita" | "Cuando falta algo, Quorum lo pide. Qué preguntar lo decide una regla, no el modelo: la antigüedad de un resonador pesa más que la marca de un ecógrafo. El modelo solo redacta. La respuesta entra como Estimado, no como dato duro. Guardo: queda firmada por este dispositivo y se comparte al sincronizar." |
 | 4 | 0:55 | Ver sección 4 | `/captura` → "Foto de placa" en el resonador 01 → `/captura/placa` | Ver sección 4 |
 | 5 | 0:20 | Ficha de DemoCare: resumen, tabla de equipos con testigos y confianza; a la derecha, Desglose de confianza con Completitud 35%, Testigos independientes 35%, Evidencia 20%, Frescura 10% | Riel izquierdo → Hospitales → clic en "Hospital DemoCare Pacific" → clic en la fila del resonador | "Esta es la ficha del cliente. La confianza no es una probabilidad del modelo: son cuatro factores que se pueden auditar. Cuántos datos hay, cuántas personas distintas lo vieron, con qué evidencia, y hace cuánto." |
 | 6 | 0:55 | Ver sección 5 | `/red` en ambas laptops | Ver sección 5 |
@@ -135,9 +148,8 @@ y el registro de cada inferencia en el repositorio."*
   seguimiento no tienen acción. Solo se dicta en Captura.
 - **Exportar CSV** (Base instalada, Consultas, Hospitales) y **Agregar dispositivo** (Red P2P):
   botones sin acción todavía.
-- **La pregunta de seguimiento la decide una regla, pero el texto lo redacta el modelo.** La regla fija
-  elige el campo que más falta y ofrece las respuestas; el modelo local solo escribe la pregunta y su
-  razón. Se puede decir las dos cosas: la decisión es determinista, la redacción es del modelo.
+- **El código de equipo no debe aparecer en cámara.** Es lo que deja entrar a un dispositivo al
+  equipo. El primer uso y la pantalla "Agregar dispositivo" se hacen antes de grabar.
 - **Exportar CSV y consulta por voz** llegaron con el PR #39; verificar en la máquina antes de
   guionizar una toma sobre ellos.
 - **Duplicados sin embeddings.** `embeddinggemma-300m` está en el catálogo de modelos pero ninguna
