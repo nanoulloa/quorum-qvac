@@ -1,12 +1,13 @@
 import {
   confianza,
+  esDecision,
   type BaseInstalada,
   type ClienteBase,
   type DatoExtraido,
+  type EntradaLog,
   type EquipoBase,
   type Estado,
   type Evidencia,
-  type ObservacionGuardada,
   type Testigo,
 } from '@quorum/shared';
 import { normalizar } from '../captura/texto.ts';
@@ -23,7 +24,8 @@ type Parcial = Omit<EquipoBase, 'evidencia' | 'diasDesdeVerificacion' | 'confian
 
 /**
  * Dos reportes son el mismo equipo si coinciden cliente, modalidad y marca, el modelo es
- * compatible y la antigüedad no difiere más de 2 años. Sin marca no se une nada automáticamente.
+ * compatible y la antigüedad no difiere más de 2 años. Sin marca no se une nada automáticamente:
+ * eso lo decide una persona con una fusión.
  */
 function mismoEquipo(a: Parcial, b: Parcial) {
   if (a.clienteId !== b.clienteId || a.modalidad !== b.modalidad) return false;
@@ -34,14 +36,25 @@ function mismoEquipo(a: Parcial, b: Parcial) {
   return aa === null || ab === null || Math.abs(aa - ab) <= 2;
 }
 
-/** Arma la base instalada a partir de todas las observaciones (propias y replicadas). */
-export function construirBase(observaciones: ObservacionGuardada[], ahora = Date.now()): BaseInstalada {
+function unir(destino: Parcial, otro: Parcial) {
+  destino.marca = masFuerte(destino.marca, otro.marca);
+  destino.modelo = masFuerte(destino.modelo, otro.modelo);
+  destino.antiguedad = masFuerte(destino.antiguedad, otro.antiguedad);
+  destino.serie = masFuerte(destino.serie, otro.serie);
+  destino.cantidad = Math.max(destino.cantidad, otro.cantidad);
+  destino.testigos.push(...otro.testigos);
+  destino.refs.push(...otro.refs);
+}
+
+/** Arma la base instalada a partir de todas las entradas de los logs (propias y replicadas). */
+export function construirBase(entradas: EntradaLog[], ahora = Date.now()): BaseInstalada {
   const clientes = new Map<string, ClienteBase>();
   const equipos: Parcial[] = [];
+  const decisiones = entradas.filter(esDecision).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const observaciones = entradas.filter((e) => !esDecision(e)).sort((a, b) => b.fecha.localeCompare(a.fecha));
 
-  const recientesPrimero = [...observaciones].sort((a, b) => b.fecha.localeCompare(a.fecha));
-  for (const o of recientesPrimero) {
-    if (!o.cliente.valor) continue;
+  for (const o of observaciones) {
+    if (esDecision(o) || !o.cliente.valor) continue;
     const clienteId = idCliente(o.cliente.valor);
     const cliente = clientes.get(clienteId) ?? { id: clienteId, nombre: o.cliente.valor, ciudad: null, pais: null };
     cliente.ciudad ??= o.ciudad.valor;
@@ -52,6 +65,7 @@ export function construirBase(observaciones: ObservacionGuardada[], ahora = Date
       const testigo: Testigo = { clave: o.autor, nombre: o.autorNombre, fecha: o.fecha, evidencia: e.evidencia ?? o.fuente };
       const nuevo: Parcial = {
         id: `${o.id}-${i}`,
+        refs: [`${o.id}-${i}`],
         clienteId,
         modalidad: e.modalidad,
         cantidad: e.cantidad,
@@ -62,17 +76,19 @@ export function construirBase(observaciones: ObservacionGuardada[], ahora = Date
         testigos: [testigo],
       };
       const existente = equipos.find((x) => mismoEquipo(x, nuevo));
-      if (!existente) {
-        equipos.push(nuevo);
-        return;
-      }
-      existente.marca = masFuerte(existente.marca, nuevo.marca);
-      existente.modelo = masFuerte(existente.modelo, nuevo.modelo);
-      existente.antiguedad = masFuerte(existente.antiguedad, nuevo.antiguedad);
-      existente.serie = masFuerte(existente.serie, nuevo.serie);
-      existente.cantidad = Math.max(existente.cantidad, nuevo.cantidad);
-      existente.testigos.push(testigo);
+      if (existente) unir(existente, nuevo);
+      else equipos.push(nuevo);
     });
+  }
+
+  // Fusiones confirmadas por personas del equipo, en el orden en que se decidieron.
+  for (const d of decisiones) {
+    if (d.tipo !== 'fusion') continue;
+    const a = equipos.find((e) => e.refs.includes(d.refs[0]));
+    const b = equipos.find((e) => e.refs.includes(d.refs[1]));
+    if (!a || !b || a === b) continue;
+    unir(a, b);
+    equipos.splice(equipos.indexOf(b), 1);
   }
 
   return {
@@ -93,6 +109,7 @@ export function construirBase(observaciones: ObservacionGuardada[], ahora = Date
         }),
       };
     }),
+    distintos: decisiones.filter((d) => d.tipo === 'distintos').map((d) => d.refs),
     generado: new Date(ahora).toISOString(),
   };
 }

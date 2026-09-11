@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { NuevaObservacion, ObservacionGuardada } from '@quorum/shared';
+import { esDecision, type DecisionDuplicado, type EntradaLog, type NuevaDecision, type NuevaObservacion, type ObservacionGuardada } from '@quorum/shared';
 
 export const DIRECTORIO = path.resolve(process.env.QUORUM_DATA_DIR ?? path.join(process.cwd(), '.quorum'));
 export const NOMBRE_DISPOSITIVO = process.env.QUORUM_NOMBRE ?? 'Carlos Méndez';
 
-/** Un log de observaciones (Hypercore). Su clave pública identifica a quien lo escribe. */
+/** Un log de entradas (Hypercore). Su clave pública identifica a quien lo escribe. */
 type Nucleo = { core: any; clave: string; nombre: string; local: boolean };
 
 type Registro = {
@@ -92,31 +92,37 @@ export class Almacen extends EventEmitter {
     return true;
   }
 
-  async guardar(nueva: NuevaObservacion, clave = this.propio.clave): Promise<ObservacionGuardada> {
+  private async agregar<T extends EntradaLog>(entrada: Omit<T, 'id' | 'autor' | 'autorNombre' | 'fecha'> & { fecha?: string }, clave: string): Promise<T> {
     const nucleo = this.nucleos.get(clave);
     if (!nucleo?.local) throw new Error('Solo se puede escribir en los logs de este dispositivo.');
-    const observacion: ObservacionGuardada = {
-      ...nueva,
-      id: randomUUID(),
-      autor: nucleo.clave,
-      autorNombre: nucleo.nombre,
-      fecha: nueva.fecha ?? new Date().toISOString(),
-    };
-    await nucleo.core.append(observacion);
+    const completa = { ...entrada, id: randomUUID(), autor: nucleo.clave, autorNombre: nucleo.nombre, fecha: entrada.fecha ?? new Date().toISOString() } as T;
+    await nucleo.core.append(completa);
     this.emit('cambio', { clave: nucleo.clave, nombre: nucleo.nombre });
-    return observacion;
+    return completa;
   }
 
-  /** Todas las observaciones que ya están en disco, propias y replicadas. */
-  async observaciones(): Promise<ObservacionGuardada[]> {
-    const todas: ObservacionGuardada[] = [];
+  guardar(nueva: NuevaObservacion, clave = this.propio.clave): Promise<ObservacionGuardada> {
+    return this.agregar<ObservacionGuardada>({ ...nueva, tipo: 'observacion' }, clave);
+  }
+
+  guardarDecision(decision: NuevaDecision): Promise<DecisionDuplicado> {
+    return this.agregar<DecisionDuplicado>(decision, this.propio.clave);
+  }
+
+  /** Todas las entradas que ya están en disco, propias y replicadas. */
+  async entradas(): Promise<EntradaLog[]> {
+    const todas: EntradaLog[] = [];
     for (const { core } of this.nucleos.values()) {
       for (let i = 0; i < core.length; i++) {
-        const valor = (await core.get(i, { wait: false })) as ObservacionGuardada | null;
+        const valor = (await core.get(i, { wait: false })) as EntradaLog | null;
         if (valor) todas.push(valor);
       }
     }
     return todas;
+  }
+
+  async observaciones(): Promise<ObservacionGuardada[]> {
+    return (await this.entradas()).filter((e): e is ObservacionGuardada => !esDecision(e));
   }
 
   /** Logs conocidos. Se anuncian a los pares para que la red converja aunque no todos se vean. */

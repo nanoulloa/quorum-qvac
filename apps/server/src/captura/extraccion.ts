@@ -165,6 +165,16 @@ function antiguedad(e: EquipoCrudo): DatoExtraido<number> {
 
 const MODELO_EXTRACCION = (process.env.QUORUM_MODELO_EXTRACCION as ClaveModelo | undefined) ?? 'extraccion';
 
+const PAISES = ['Panamá', 'Colombia', 'Costa Rica', 'México', 'Perú', 'Ecuador', 'Brasil', 'Chile', 'Argentina', 'Guatemala', 'El Salvador', 'Honduras', 'Nicaragua', 'República Dominicana'];
+const ALIAS_PAIS: Record<string, string> = { brazil: 'Brasil', mexico: 'México', peru: 'Perú', panama: 'Panamá' };
+
+/** "Panama" → "Panamá". Los países del dictado se guardan con su nombre canónico. */
+function paisCanonico(pais: string | null): string | null {
+  if (!pais) return null;
+  const n = normalizar(pais);
+  return PAISES.find((p) => normalizar(p) === n) ?? ALIAS_PAIS[n] ?? pais;
+}
+
 /** Convierte un dictado en datos estructurados con su estado. Tolera datos incompletos. */
 export async function extraer(texto: string, anioActual = new Date().getFullYear()): Promise<Extraccion> {
   const crudo = await completarJson<Crudo>({
@@ -182,7 +192,7 @@ export async function extraer(texto: string, anioActual = new Date().getFullYear
   return {
     cliente: dicho(clienteConocido(cliente) ?? cliente),
     ciudad: dicho(ciudad),
-    pais: dicho(limpiar(crudo.pais)),
+    pais: dicho(paisCanonico(limpiar(crudo.pais))),
     equipos: corregir(crudo, texto, anioActual).map((e) => ({
       modalidad: e.modalidad,
       cantidad: e.cantidad,

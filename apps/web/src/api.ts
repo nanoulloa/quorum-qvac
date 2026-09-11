@@ -1,4 +1,4 @@
-import type { Extraccion, LecturaPlaca, NuevaObservacion, ObservacionGuardada, Transcripcion } from '@quorum/shared';
+import type { DecisionDuplicado, Extraccion, LecturaPlaca, NuevaDecision, NuevaObservacion, ObservacionGuardada, Transcripcion } from '@quorum/shared';
 
 async function pedir<T>(ruta: string, init: RequestInit): Promise<T> {
   const respuesta = await fetch(ruta, init);
@@ -17,4 +17,5 @@ export const api = {
   leerPlaca: (foto: Blob) =>
     pedir<LecturaPlaca>('/api/placa', { method: 'POST', headers: { 'Content-Type': foto.type || 'image/png' }, body: foto }),
   guardarObservacion: (observacion: NuevaObservacion) => pedir<ObservacionGuardada>('/api/observaciones', json(observacion)),
+  decidir: (decision: NuevaDecision) => pedir<DecisionDuplicado>('/api/decisiones', json(decision)),
 };

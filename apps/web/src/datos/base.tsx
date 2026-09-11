@@ -8,6 +8,8 @@ export type TestigoUI = Persona & { evidencia: Evidencia; dias: number };
 export type ClienteUI = { id: string; nombre: string; ciudad: string; pais: string };
 export type EquipoUI = {
   id: string;
+  /** Reportes que componen el equipo; las decisiones de duplicados apuntan a ellos. */
+  refs: string[];
   clienteId: string;
   modalidad: Modalidad;
   nombre: string;
@@ -24,6 +26,8 @@ export type EquipoUI = {
 type Contexto = {
   clientes: ClienteUI[];
   equipos: EquipoUI[];
+  /** Pares de reportes que alguien marcó como equipos distintos. */
+  distintos: [string, string][];
   red: EstadoRed | null;
   /** `dispositivo`: datos del almacén local. `ejemplo`: el servidor local no respondió. */
   origen: 'dispositivo' | 'ejemplo';
@@ -74,6 +78,7 @@ function desdeApi(base: BaseInstalada) {
     const campo = e.modelo.valor?.match(/\b\d(?:[.,]\d)?T\b/)?.[0];
     return {
       id: e.id,
+      refs: e.refs,
       clienteId: e.clienteId,
       modalidad: e.modalidad,
       nombre: `${NOMBRE[e.modalidad]}${campo ? ` ${campo}` : ''}${e.cantidad > 1 ? ` ×${e.cantidad}` : ''}`,
@@ -87,7 +92,7 @@ function desdeApi(base: BaseInstalada) {
       confianza: e.confianza,
     };
   });
-  return { clientes, equipos };
+  return { clientes, equipos, distintos: base.distintos };
 }
 
 function desdeEjemplo() {
@@ -95,8 +100,10 @@ function desdeEjemplo() {
     clientes: ejemplo.clientes,
     equipos: ejemplo.equipos.map<EquipoUI>((e) => ({
       ...e,
+      refs: [e.id],
       testigos: e.testigos.map((t, i) => ({ ...ejemplo.personas[t], evidencia: i === 0 ? e.evidencia : 'voz', dias: e.dias + i * 4 })),
     })),
+    distintos: [] as [string, string][],
   };
 }
 

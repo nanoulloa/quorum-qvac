@@ -8,8 +8,9 @@ export type EquipoObservado = EquipoExtraido & {
   evidencia?: Evidencia;
 };
 
-/** Una entrada del log de un dispositivo. El autor es la clave pública que la firmó. */
+/** Una visita en el log de un dispositivo. El autor es la clave pública que la firmó. */
 export type ObservacionGuardada = {
+  tipo?: 'observacion';
   id: string;
   autor: string;
   autorNombre: string;
@@ -23,7 +24,27 @@ export type ObservacionGuardada = {
 };
 
 /** Contrato de POST /api/observaciones. */
-export type NuevaObservacion = Omit<ObservacionGuardada, 'id' | 'autor' | 'autorNombre' | 'fecha'> & { fecha?: string };
+export type NuevaObservacion = Omit<ObservacionGuardada, 'tipo' | 'id' | 'autor' | 'autorNombre' | 'fecha'> & { fecha?: string };
+
+/**
+ * Decisión de una persona sobre dos reportes que podrían ser el mismo equipo.
+ * `refs` apunta a equipos de observaciones: `<id de observación>-<índice del equipo>`.
+ */
+export type DecisionDuplicado = {
+  tipo: 'fusion' | 'distintos';
+  id: string;
+  autor: string;
+  autorNombre: string;
+  fecha: string;
+  refs: [string, string];
+};
+
+/** Contrato de POST /api/decisiones. */
+export type NuevaDecision = Pick<DecisionDuplicado, 'tipo' | 'refs'>;
+
+export type EntradaLog = ObservacionGuardada | DecisionDuplicado;
+
+export const esDecision = (e: EntradaLog): e is DecisionDuplicado => e.tipo === 'fusion' || e.tipo === 'distintos';
 
 export type Testigo = { clave: string; nombre: string; fecha: string; evidencia: Evidencia };
 
@@ -32,6 +53,8 @@ export type ClienteBase = { id: string; nombre: string; ciudad: string | null; p
 /** Un equipo físico, uniendo lo que reportaron distintos testigos. */
 export type EquipoBase = {
   id: string;
+  /** Reportes que componen este equipo. */
+  refs: string[];
   clienteId: string;
   modalidad: Modalidad;
   cantidad: number;
@@ -45,8 +68,8 @@ export type EquipoBase = {
   confianza: Desglose;
 };
 
-/** Contrato de GET /api/base. */
-export type BaseInstalada = { clientes: ClienteBase[]; equipos: EquipoBase[]; generado: string };
+/** Contrato de GET /api/base. `distintos`: pares de reportes que alguien marcó como equipos distintos. */
+export type BaseInstalada = { clientes: ClienteBase[]; equipos: EquipoBase[]; distintos: [string, string][]; generado: string };
 
 export type Dispositivo = {
   clave: string;

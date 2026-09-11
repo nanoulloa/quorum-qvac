@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import type { NuevaObservacion } from '@quorum/shared';
+import type { NuevaDecision, NuevaObservacion } from '@quorum/shared';
 import { extraer } from './captura/extraccion.ts';
 import { Almacen } from './datos/almacen.ts';
 import { sembrar } from './datos/semilla.ts';
@@ -59,7 +59,18 @@ app.post<{ Body: NuevaObservacion }>('/api/observaciones', async (req, reply) =>
   return guardada;
 });
 
-app.get('/api/base', async () => construirBase(await almacen.observaciones()));
+app.post<{ Body: NuevaDecision }>('/api/decisiones', async (req, reply) => {
+  const d = req.body;
+  const refsValidas = Array.isArray(d?.refs) && d.refs.length === 2 && d.refs.every((r) => typeof r === 'string' && r.length > 0);
+  if ((d?.tipo !== 'fusion' && d?.tipo !== 'distintos') || !refsValidas) {
+    return reply.code(400).send({ error: 'La decisión necesita tipo "fusion" o "distintos" y dos refs.' });
+  }
+  const decision = await almacen.guardarDecision({ tipo: d.tipo, refs: [d.refs[0], d.refs[1]] });
+  red.evento(d.tipo === 'fusion' ? 'Dos reportes confirmados como el mismo equipo' : 'Dos reportes marcados como equipos distintos');
+  return decision;
+});
+
+app.get('/api/base', async () => construirBase(await almacen.entradas()));
 
 app.get('/api/red', async () => red.estado());
 
