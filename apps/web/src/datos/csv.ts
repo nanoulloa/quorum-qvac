@@ -22,7 +22,9 @@ const COLUMNAS = [
 ];
 
 const celda = (v: string | number | null | undefined) => {
-  const s = v === null || v === undefined || v === '—' ? '' : String(v);
+  if (v === null || v === undefined || v === '—') return '';
+  // El texto puede llegar de otros dispositivos: un apóstrofo evita que Excel lo ejecute como fórmula.
+  const s = typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v);
   return /[",;\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
