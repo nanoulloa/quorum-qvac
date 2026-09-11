@@ -10,7 +10,8 @@
     "dev:web": "npm run dev -w @quorum/web",
     "dev:server": "npm run dev -w @quorum/server",
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
