@@ -137,11 +137,18 @@ derecha. Si B corre en la misma Mac, se dice en cámara.
    *"Se encuentran por un tópico derivado del secreto del equipo. Solo quien lo conoce entra.
    Cada dispositivo firma lo que reporta con su clave. Medido entre dos almacenes: 4 segundos la
    primera vez, medio segundo cuando ya están conectados."*
-4. **0:40–0:55** · En A, tarjeta **Posible duplicado**: comparación campo por campo y
-   "¿Es el mismo resonador magnético que reportó …?". Clic en **Es el mismo, unir** → volver a
-   Hospitales y mostrar la confianza del equipo más alta que antes.
-   *"Dos personas reportaron el mismo equipo. Al unirlo, suma un testigo independiente y la
-   confianza sube. La decisión también va firmada y también se sincroniza."*
+4. **0:40–0:55** · En A, tarjeta **Posible duplicado · 1 de 1 · Hospital DemoCare Pacific**:
+   "¿Es el mismo tomógrafo que reportó Sofía?", con el tomógrafo dictado en la toma 2 y el que
+   reportó Sofía Castro, comparados campo por campo.
+   - La tarjeta sale de la visita grabada, no de B. Sin marca, Quorum no une dos reportes solo y se
+     lo pregunta a una persona.
+   - Clic en **Es el mismo, unir**. La tarjeta pasa a "Ningún reporte parece repetido".
+   - Ir a Hospitales → DemoCare → fila del tomógrafo: queda con 2 testigos y confianza 62. Antes eran
+     dos filas de 48; son los valores del ensayo y pueden variar un punto.
+
+   *"Dos personas reportaron el mismo tomógrafo, sin marca. Quorum no los une por su cuenta: me lo
+   pregunta. Al unirlo, suma un testigo independiente y la confianza sube. La decisión también va
+   firmada y también se sincroniza."*
 
 Cómo se ve que no hay servidor en medio: el modo avión estuvo encendido hasta el paso 2, B nunca se
 sembró, y nadie abrió una consola ni una URL distinta de `localhost`. Los dos dispositivos se
