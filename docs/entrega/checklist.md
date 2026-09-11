@@ -28,7 +28,7 @@ Los PR [#32](https://github.com/nanoulloa/quorum-qvac/pull/32) (README),
 | 1.11 | Datos 100% ficticios | `git grep -n "PERSONAS\|semilla-" -- apps/server/src/datos/semilla.ts` | Nombres y hospitales inventados | ✅ `apps/server/src/datos/semilla.ts:1-2,23-26`: encabezado marcado como ficticio y personas con prefijo `semilla-` |
 | 1.12 | Elegibilidad confirmada con ISD | Confirmación escrita del organizador | Respuesta por escrito | ⚠️ pendiente · fuera del repo, no verificable desde aquí |
 | 1.13 | Formulario de entrega enviado | Enviar antes de las 7:00 am hora Panamá (límite 8:00) | Acuse recibido | ⚠️ pendiente · último paso |
-| 1.14 | La interfaz no muestra datos de ejemplo en cámara | Abrir la web con el servidor local apagado | Debería avisar, no inventar | 🔴 **sigue igual**: `apps/web/src/datos/base.tsx:123` arranca en `origen: 'ejemplo'` y `:130` vuelve a ese estado si `/api/base` falla. El único aviso es el distintivo `Servidor local sin respuesta` de `apps/web/src/components/ui.tsx:25`. Grabar en ese estado muestra hospitales inventados como si fueran la base. **Antes de grabar, confirmar que el distintivo dice pares o "Sin pares conectados", nunca "Servidor local sin respuesta"** |
+| 1.14 | La interfaz no muestra datos de ejemplo en cámara | Abrir la web con el servidor local apagado | Debería avisar, no inventar | ✅ resuelto en [#56](https://github.com/nanoulloa/quorum-qvac/pull/56).<br>• `apps/web/src/datos/base.tsx` ya no trae datos de ejemplo; `origen` es `cargando` · `dispositivo` · `sin-servidor`.<br>• Con el servidor caído, `apps/web/src/components/Layout.tsx` muestra la banda **"El servidor local no responde"** y conserva lo último que llegó del dispositivo. Si nunca llegó nada, las pantallas quedan vacías.<br>• Verificado apagando el servidor en una instancia de prueba.<br>**Antes de grabar, confirmar que esa banda no aparece** |
 
 ## 2 · Mínimo obligatorio del reto Philips
 
@@ -49,7 +49,7 @@ Los PR [#32](https://github.com/nanoulloa/quorum-qvac/pull/32) (README),
 
 | # | Requisito | Prueba | Estado |
 |---|---|---|---|
-| 3.1 | VisionPsy es central: lee las placas | `/captura/placa`, subir o tomar la foto | ✅ `apps/server/src/placa/lectura.ts:53-87`, modelo `visionpsy-nano-460m` (`apps/server/src/qvac/modelos.ts:40-48`); la entrada acepta cámara trasera (`apps/web/src/screens/Placa.tsx:202-203`) |
+| 3.1 | VisionPsy es central: lee las placas | `/captura` → "Foto de placa" en un equipo: el lector se abre dentro de la visita ([#57](https://github.com/nanoulloa/quorum-qvac/pull/57)). Para equipos ya guardados, `/captura/placa` desde Hospitales | ✅ `apps/server/src/placa/lectura.ts:53-87`, modelo `visionpsy-nano-460m` (`apps/server/src/qvac/modelos.ts`); la entrada acepta cámara trasera en `apps/web/src/components/PlacaEnVisita.tsx` y en `apps/web/src/screens/Placa.tsx` |
 | 3.2 | VisionPsy corre local, nunca delegado | `git grep -n "leerPlaca\|delegarConsulta" -- apps packages` | ✅ `leerPlaca` llama a `completarJson`, que siempre registra `dondeCorre: 'este-dispositivo'` (`inferir.ts:47`). La delegación, que ahora existe, entra por otro camino: `red.delegarConsulta` solo se usa en `index.ts:139` (`POST /api/consulta`). `/api/placa` (`index.ts:103-108`) no recibe `delegar`. El contrato está escrito en `red.ts:25` y `index.ts:32-33`: fotos y dictados nunca salen del dispositivo |
 | 3.3 | Licencia MIT o Apache | ver 1.7 | ✅ Apache-2.0 |
 | 3.4 | Registro de rendimiento con carga, tokens, TTFT y tokens/s | `/rendimiento` o `GET /api/perf` | ✅ campos en `packages/shared/src/perf.ts:4-19`; se llenan en `inferir.ts:42-56` (`cargaMs`, `tokensEntrada`, `tokensSalida`, `ttftMs`, `tokensPorSegundo`, `backend`) y se leen en `apps/server/src/qvac/perf.ts` |
@@ -65,7 +65,7 @@ Los PR [#32](https://github.com/nanoulloa/quorum-qvac/pull/32) (README),
 | Extra | Dónde mostrarlo | Estado |
 |---|---|---|
 | Voz | `/captura`, botón de dictado | ✅ `apps/web/src/components/useGrabadora.ts:37` + `POST /api/transcribir` |
-| Foto de placas | `/captura/placa` | ✅ ver 3.1 |
+| Foto de placas | `/captura` → Foto de placa (y `/captura/placa` desde Hospitales) | ✅ ver 3.1 |
 | Puntaje de confianza | Barra de confianza en `/hospitales` y `/consultas` | ✅ `packages/shared/src/confianza.ts:4,23`: completitud 35%, testigos 35%, evidencia 20%, frescura 10% |
 | Duplicados | `/red`, tarjeta de duplicado con fusionar o marcar distintos | ✅ `apps/web/src/screens/Red.tsx:113-120` + `POST /api/decisiones` (`apps/server/src/index.ts:122-131`) |
 | Alertas de datos viejos | Marca "sin verificar" en `/hospitales` y `/base` | ✅ `apps/web/src/datos/reglas.ts:8` (más de 180 días), usado en `Hospitales.tsx:35,101` y `BaseInstalada.tsx:75` |
