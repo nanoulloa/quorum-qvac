@@ -87,3 +87,9 @@ export type EstadoRed = {
   conexiones: number;
   eventos: { fecha: string; texto: string }[];
 };
+
+/** Contrato de GET /api/perfil. `equipo` es el código que comparten los dispositivos del equipo. */
+export type Perfil = { configurado: boolean; nombre: string; equipo: string | null; clave: string };
+
+/** Contrato de POST /api/perfil: crear un equipo o unirse con un código. Sin `equipo` ni `crear` se conserva el actual. */
+export type NuevoPerfil = { nombre: string; equipo?: string; crear?: boolean };

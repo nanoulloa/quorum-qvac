@@ -7,7 +7,9 @@ import type {
   LecturaPlaca,
   NuevaDecision,
   NuevaObservacion,
+  NuevoPerfil,
   ObservacionGuardada,
+  Perfil,
   Pregunta,
   Respuesta,
   RespuestaConsulta,
@@ -35,5 +37,7 @@ export const api = {
   guardarObservacion: (observacion: NuevaObservacion) => pedir<ObservacionGuardada>('/api/observaciones', json(observacion)),
   decidir: (decision: NuevaDecision) => pedir<DecisionDuplicado>('/api/decisiones', json(decision)),
   base: () => pedir<BaseInstalada>('/api/base', {}),
+  perfil: () => pedir<Perfil>('/api/perfil', {}),
+  guardarPerfil: (perfil: NuevoPerfil) => pedir<Perfil>('/api/perfil', json(perfil)),
   consulta: (texto: string) => pedir<RespuestaConsulta>('/api/consulta', json({ texto })),
 };

@@ -2,18 +2,19 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import os from 'node:os';
 import { createRequire } from 'node:module';
-import type { CampoPregunta, Extraccion, Faltante, NuevaDecision, NuevaObservacion, Sistema } from '@quorum/shared';
+import type { CampoPregunta, Extraccion, Faltante, NuevaDecision, NuevaObservacion, NuevoPerfil, Perfil, Sistema } from '@quorum/shared';
 import { extraer } from './captura/extraccion.ts';
 import { elegirFaltante, interpretarRespuesta, redactarPregunta } from './captura/pregunta.ts';
 import { interpretarConsulta } from './consultas/consulta.ts';
-import { Almacen } from './datos/almacen.ts';
+import { Almacen, DIRECTORIO, NOMBRE_DISPOSITIVO } from './datos/almacen.ts';
+import { guardarPerfil, leerPerfil, normalizarCodigo, nuevoCodigo } from './datos/perfil.ts';
 import { sembrar } from './datos/semilla.ts';
 import { construirBase } from './datos/vista.ts';
 import { leerPlaca } from './placa/lectura.ts';
 import { transcribir } from './qvac/inferir.ts';
 import { cerrarModelos } from './qvac/modelos.ts';
 import { leerRegistro } from './qvac/perf.ts';
-import { Red } from './red/red.ts';
+import { Red, SECRETO_EQUIPO } from './red/red.ts';
 
 const app = Fastify({ logger: { level: 'info' }, bodyLimit: 30 * 1024 * 1024 });
 
@@ -23,13 +24,36 @@ app.addContentTypeParser(/^(audio|image)\//, { parseAs: 'buffer' }, (_req, body,
 
 const sinCuerpo = (body: unknown) => !Buffer.isBuffer(body) || body.byteLength === 0;
 
-const almacen = new Almacen();
+// Nombre y equipo los elige la persona al abrir Quorum; las variables de entorno quedan para scripts.
+const perfilGuardado = await leerPerfil(DIRECTORIO);
+const almacen = new Almacen(DIRECTORIO, perfilGuardado?.nombre ?? NOMBRE_DISPOSITIVO);
 await almacen.abrir();
-const red = new Red(almacen);
-if (process.env.QUORUM_P2P !== 'off') red.iniciar();
+const red = new Red(almacen, perfilGuardado?.equipo ?? SECRETO_EQUIPO);
+const p2p = process.env.QUORUM_P2P !== 'off';
+if (p2p) red.iniciar();
 
 // Toda la inferencia corre en este proceso con @qvac/sdk. Nunca se llama a una API de IA remota.
 app.get('/api/health', async () => ({ ok: true, inferencia: 'local', dispositivo: almacen.nombre }));
+
+const perfil = (): Perfil => ({ configurado: Boolean(red.equipo), nombre: almacen.nombre, equipo: red.equipo, clave: almacen.clave });
+
+app.get('/api/perfil', async () => perfil());
+
+// Crear un equipo genera un código nuevo; unirse valida el que se recibió. Se guarda solo en este dispositivo.
+app.post<{ Body: NuevoPerfil }>('/api/perfil', async (req, reply) => {
+  const nombre = req.body?.nombre?.trim();
+  if (!nombre || nombre.length > 60) return reply.code(400).send({ error: 'Escribe tu nombre (hasta 60 caracteres).' });
+  const equipo = req.body.crear ? nuevoCodigo() : req.body.equipo ? normalizarCodigo(req.body.equipo) : red.equipo;
+  if (!equipo) return reply.code(400).send({ error: 'Revisa el código del equipo: tiene la forma QRM-XXXX-XXXX-XXXX.' });
+  await guardarPerfil(DIRECTORIO, { nombre, equipo });
+  if (nombre !== almacen.nombre) {
+    almacen.renombrar(nombre);
+    red.evento(`Este dispositivo firma como ${nombre}`);
+  }
+  if (equipo !== red.equipo) await red.cambiarEquipo(equipo, p2p);
+  else red.anunciar();
+  return perfil();
+});
 
 app.post('/api/transcribir', async (req, reply) => {
   if (sinCuerpo(req.body)) {

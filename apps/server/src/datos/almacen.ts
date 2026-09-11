@@ -6,7 +6,7 @@ import path from 'node:path';
 import { esDecision, type DecisionDuplicado, type EntradaLog, type NuevaDecision, type NuevaObservacion, type ObservacionGuardada } from '@quorum/shared';
 
 export const DIRECTORIO = path.resolve(process.env.QUORUM_DATA_DIR ?? path.join(process.cwd(), '.quorum'));
-export const NOMBRE_DISPOSITIVO = process.env.QUORUM_NOMBRE ?? 'Carlos Méndez';
+export const NOMBRE_DISPOSITIVO = process.env.QUORUM_NOMBRE ?? 'Este dispositivo';
 
 /** Un log de entradas (Hypercore). Su clave pública identifica a quien lo escribe. */
 type Nucleo = { core: any; clave: string; nombre: string; local: boolean };
@@ -57,6 +57,11 @@ export class Almacen extends EventEmitter {
 
   get nombre() {
     return this.propio.nombre;
+  }
+
+  /** Cambia el nombre con el que este dispositivo firma lo que reporta a partir de ahora. */
+  renombrar(nombre: string) {
+    this.propio.nombre = nombre;
   }
 
   private async abrirLocal(interno: string, nombre: string): Promise<Nucleo> {

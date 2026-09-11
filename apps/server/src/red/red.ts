@@ -6,8 +6,12 @@ import { EventEmitter } from 'node:events';
 import type { Dispositivo, EstadoRed } from '@quorum/shared';
 import type { Almacen } from '../datos/almacen.ts';
 
-/** Solo los dispositivos que conocen este secreto encuentran el tópico del equipo. */
-const SECRETO_EQUIPO = process.env.QUORUM_EQUIPO ?? 'quorum-demo';
+/**
+ * Solo los dispositivos que conocen este secreto encuentran el tópico del equipo. Normalmente es el
+ * código que la persona crea o recibe al abrir Quorum; la variable queda para scripts. Sin secreto no
+ * se busca a nadie, así un dispositivo nuevo no se mezcla con otro equipo.
+ */
+export const SECRETO_EQUIPO = process.env.QUORUM_EQUIPO ?? null;
 const PROTOCOLO = 'quorum/directorio/v1';
 
 type Anuncio = {
@@ -33,7 +37,7 @@ export class Red extends EventEmitter {
 
   constructor(
     private readonly almacen: Almacen,
-    private readonly secreto = SECRETO_EQUIPO,
+    private secreto: string | null = SECRETO_EQUIPO,
   ) {
     super();
     almacen.on('cambio', ({ clave, nombre }: { clave: string; nombre: string }) => {
@@ -43,6 +47,10 @@ export class Red extends EventEmitter {
   }
 
   iniciar() {
+    if (!this.secreto) {
+      this.evento('Sin equipo: crea uno o únete con un código');
+      return;
+    }
     this.swarm = new Hyperswarm();
     this.swarm.on('connection', (conexion: any) => this.alConectar(conexion));
     this.swarm.join(crypto.hash(Buffer.from(`quorum:${this.secreto}`)), { server: true, client: true });
@@ -52,6 +60,20 @@ export class Red extends EventEmitter {
   /** Vuelve a enviar la lista de logs conocidos a todas las conexiones abiertas. */
   anunciar() {
     for (const enviar of this.anunciadores) enviar();
+  }
+
+  get equipo() {
+    return this.secreto;
+  }
+
+  /** Deja el equipo actual y, si `conectar`, busca a los dispositivos del nuevo. */
+  async cambiarEquipo(secreto: string, conectar = true) {
+    await this.swarm?.destroy();
+    this.swarm = null;
+    this.pares.clear();
+    this.anunciadores.clear();
+    this.secreto = secreto;
+    if (conectar) this.iniciar();
   }
 
   private anuncio(): Anuncio {

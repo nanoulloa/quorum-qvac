@@ -26,17 +26,22 @@ Con el servidor corriendo, `npm run semilla -w @quorum/server` carga visitas fic
 
 ### Demo con dos laptops (sincronización P2P)
 
-1. **Laptop A:** `QUORUM_NOMBRE="Carlos Méndez" npm run dev` y luego `npm run semilla -w @quorum/server`.
-2. **Laptop B:** `QUORUM_NOMBRE="Ana Ríos" npm run dev`, sin semilla. Arranca vacía.
-3. Ambas usan el mismo secreto de equipo (`QUORUM_EQUIPO`, por defecto `quorum-demo`) y necesitan red para encontrarse.
-4. En segundos, la laptop B recibe la base. Lo que cualquiera capture o decida en "Red P2P" aparece en la otra.
+1. **Laptop A:** `npm run dev` y abre la web.
+   - Escribe tu nombre, elige **Crear un equipo** y copia el código (`QRM-XXXX-XXXX-XXXX`).
+   - Para tener datos que explorar: `npm run semilla -w @quorum/server`.
+2. **Laptop B:** `npm run dev`, escribe tu nombre, elige **Unirme con un código** y pega el código de A. Arranca vacía.
+3. Las dos necesitan red para encontrarse. En segundos B recibe la base de A, y lo que cualquiera capture o decida en "Red P2P" aparece en la otra.
+4. Para sumar otro dispositivo después, abre **Red P2P → Agregar dispositivo**: ahí está el código.
+
+El nombre y el código se guardan solo en ese dispositivo (`apps/server/.quorum/perfil.json`). Sin código, el dispositivo no busca a nadie.
 
 | Variable | Para qué |
 |---|---|
-| `QUORUM_NOMBRE` | Nombre del dispositivo, que firma sus visitas |
-| `QUORUM_EQUIPO` | Secreto del equipo; solo quien lo conoce encuentra a los demás |
+| `QUORUM_NOMBRE` | Nombre del dispositivo mientras no se elija en la web (útil en scripts) |
+| `QUORUM_EQUIPO` | Secreto del equipo mientras no se elija en la web; solo quien lo conoce encuentra a los demás |
 | `QUORUM_DATA_DIR` | Carpeta del almacén local (por defecto `apps/server/.quorum`) |
-| `QUORUM_API_PORT` | Puerto del servidor local (por defecto 4000) |
+| `QUORUM_API_PORT` | Puerto del servidor local (por defecto 4000); la web lo usa para su proxy |
+| `QUORUM_WEB_PORT` | Puerto de la web (por defecto 5173); sirve para levantar dos instancias en la misma máquina |
 | `QUORUM_P2P=off` | Desactiva la sincronización |
 
 ## Arquitectura
