@@ -1,0 +1,18 @@
+/* Lector de placa encima de Captura: la visita sin guardar sigue montada debajo. */
+.modal-fondo { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(8, 12, 20, 0.55); }
+.modal-placa { width: 100%; max-width: 880px; max-height: calc(100vh - 48px); overflow: auto; display: flex; flex-direction: column; gap: 18px; padding: 24px; }
+.modal-placa-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.modal-placa-cuerpo { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; gap: 24px; }
+.placa-visor.modal-placa-visor { min-height: 300px; }
+.modal-placa-guia { font-size: 13px; color: rgba(255, 255, 255, 0.7); }
+.modal-placa-datos { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.modal-placa-datos .note { margin: 0; }
+.modal-placa-datos .placa-leidos { margin-top: 0; }
+.modal-placa-campo { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--hair); }
+.modal-placa-campo .placa-valor { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal-placa-pie { font-size: 12px; }
+.modal-placa-acciones { display: flex; justify-content: flex-end; gap: 10px; }
+
+@media (max-width: 760px) {
+  .modal-placa-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}

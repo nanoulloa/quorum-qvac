@@ -1,8 +1,9 @@
-import type { CampoPregunta, DatoExtraido, Estado, Evidencia, Extraccion, Faltante, Pregunta, Respuesta } from '@quorum/shared';
+import type { CampoPlaca, CampoPregunta, DatoExtraido, Estado, Evidencia, Extraccion, Faltante, LecturaPlaca, Pregunta, Respuesta } from '@quorum/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { IconCamera, IconCheck, IconMic, IconSend, IconSpeaker } from '../components/icons';
+import { PlacaEnVisita } from '../components/PlacaEnVisita';
 import { PageHeader, StatusPill, Steps } from '../components/ui';
 import { useGrabadora } from '../components/useGrabadora';
 import { useBase } from '../datos/base';
@@ -66,6 +67,30 @@ function conRespuesta(r: Extraccion, indice: number, campo: CampoPregunta, dato:
   return { ...r, equipos };
 }
 
+const FUERZA: Estado[] = ['Desconocido', 'Estimado', 'Reportado', 'Confirmado'];
+
+/**
+ * La foto de la placa entra en el equipo de la visita en curso. Un campo solo se reemplaza si la lectura
+ * es al menos tan firme como lo dictado: una lectura dudosa no pisa un dato Reportado.
+ */
+function conPlaca(r: Extraccion, indice: number, lectura: LecturaPlaca): Extraccion {
+  const leido = (campo: CampoPlaca['campo']) => lectura.campos.find((c) => c.campo === campo);
+  const mejor = <T,>(actual: DatoExtraido<T>, valor: T | null, estado: Estado): DatoExtraido<T> =>
+    valor !== null && FUERZA.indexOf(estado) >= FUERZA.indexOf(actual.estado) ? { valor, estado } : actual;
+  const equipos = r.equipos.map((e, i) => {
+    if (i !== indice) return e;
+    const marca = leido('Marca');
+    const modelo = leido('Modelo');
+    return {
+      ...e,
+      marca: mejor(e.marca, marca?.valor ?? null, marca?.estado ?? 'Desconocido'),
+      modelo: mejor(e.modelo, modelo?.valor ?? null, modelo?.estado ?? 'Desconocido'),
+      antiguedad: mejor(e.antiguedad, lectura.antiguedad.valor, lectura.antiguedad.estado),
+    };
+  });
+  return { ...r, equipos };
+}
+
 /** Resalta en la transcripción los valores que la IA extrajo. */
 function anotar(texto: string, r: Extraccion): Segmento[] {
   const estimado = (d: { estado: Estado }) => d.estado === 'Estimado';
@@ -120,6 +145,9 @@ export function Captura() {
   const [texto, setTexto] = useState('');
   const [inicio, setInicio] = useState<string | null>(null);
   const [avisoCliente, setAvisoCliente] = useState(false);
+  // Foto de placa dentro de la visita: qué equipo se está leyendo y qué lecturas ya se aplicaron (por índice).
+  const [placaPara, setPlacaPara] = useState<number | null>(null);
+  const [placas, setPlacas] = useState<Record<number, LecturaPlaca>>({});
   const campoTexto = useRef<HTMLInputElement>(null);
 
   // Lectura en voz alta de la pregunta (#26). Se recuerda en este navegador para capturar con manos libres.
@@ -199,6 +227,8 @@ export function Captura() {
     setTexto('');
     setInicio(null);
     setAvisoCliente(false);
+    setPlacaPara(null);
+    setPlacas({});
   };
 
   /** El servidor elige el dato que más falta y redacta la pregunta; la tarjeta solo la muestra. */
@@ -229,6 +259,7 @@ export function Captura() {
     setPreguntadas([]);
     setGuardada(null);
     setAvisoCliente(false);
+    setPlacas({});
     const partes = [msTranscripcion !== undefined ? `parakeet ${segundos(msTranscripcion)}` : null, `qwen3-1.7b ${segundos(performance.now() - t0)}`];
     setModelos(`${partes.filter(Boolean).join(' · ')} · en este dispositivo`);
     setFase('listo');
@@ -317,6 +348,19 @@ export function Captura() {
     }
   };
 
+  const aplicarPlaca = (indice: number, lectura: LecturaPlaca) => {
+    setPlacaPara(null);
+    if (!extraccion) return;
+    const actualizada = conPlaca(extraccion, indice, lectura);
+    setExtraccion(actualizada);
+    setEquipos(aVista(actualizada).equipos);
+    setPlacas((p) => ({ ...p, [indice]: lectura }));
+    // Si la foto completó el dato que se estaba preguntando, se pasa al siguiente.
+    if (pregunta && pregunta.equipo === indice && pregunta.campo !== 'cantidad' && actualizada.equipos[indice][pregunta.campo].estado !== 'Desconocido') {
+      void preguntar(actualizada, preguntadas);
+    }
+  };
+
   const guardar = async () => {
     if (!extraccion || !dictado) return;
     // Sin cliente el log conserva la visita, pero la base instalada la ignora: se avisa una vez.
@@ -334,7 +378,13 @@ export function Captura() {
         cliente: extraccion.cliente,
         ciudad: extraccion.ciudad,
         pais: extraccion.pais,
-        equipos: extraccion.equipos.map((e) => ({ ...e, evidencia: dictado.fuente })),
+        // Con foto aplicada, el equipo lleva la serie leída y evidencia de foto.
+        equipos: extraccion.equipos.map((e, i) => {
+          const placa = placas[i];
+          if (!placa) return { ...e, evidencia: dictado.fuente };
+          const serie = placa.campos.find((c) => c.campo === 'Número de serie');
+          return { ...e, evidencia: 'foto' as const, serie: { valor: serie?.valor ?? null, estado: serie?.valor ? serie.estado : ('Desconocido' as const) } };
+        }),
       });
       await recargar();
       setGuardada({ cliente: extraccion.cliente.valor });
@@ -487,9 +537,9 @@ export function Captura() {
                   <span className="mono faint">{String(i + 1).padStart(2, '0')}</span>
                   <span className="section-title">{e.nombre}</span>
                 </div>
-                <Link to="/captura/placa" className="btn btn-link">
-                  <IconCamera width={15} height={15} /> Foto de placa
-                </Link>
+                <button type="button" className="btn btn-link" onClick={() => setPlacaPara(i)} disabled={ocupado || Boolean(guardada)}>
+                  {placas[i] ? <IconCheck width={15} height={15} /> : <IconCamera width={15} height={15} />} {placas[i] ? 'Foto aplicada' : 'Foto de placa'}
+                </button>
               </div>
               {(Object.entries(e.campos) as [string, Dato][]).map(([clave, dato]) => (
                 <div key={clave} className="kv-row">
@@ -503,6 +553,10 @@ export function Captura() {
           {equipos.length === 0 && <p className="faint">{extraccion ? 'No se detectaron equipos en el dictado.' : 'Los equipos aparecen aquí a medida que dictas.'}</p>}
         </section>
       </div>
+
+      {placaPara !== null && equipos[placaPara] && (
+        <PlacaEnVisita equipo={equipos[placaPara].nombre} alAplicar={(lectura) => aplicarPlaca(placaPara, lectura)} alCerrar={() => setPlacaPara(null)} />
+      )}
     </>
   );
 }

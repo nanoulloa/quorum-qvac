@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { DatoExtraido, EquipoExtraido, Extraccion, Modalidad } from '@quorum/shared';
-import { elegirFaltante, enDocePalabras, interpretarRespuesta } from './pregunta.ts';
+import { elegirFaltante, enDocePalabras, interpretarRespuesta, preguntaSegura } from './pregunta.ts';
 
 const dato = <T>(valor: T | null, estado: DatoExtraido<T>['estado'] = 'Reportado'): DatoExtraido<T> => ({ valor, estado: valor === null ? 'Desconocido' : estado });
 
@@ -88,6 +88,32 @@ describe('interpretarRespuesta', () => {
     assert.deepEqual(interpretarRespuesta('modelo', 'ingenia'), { valor: 'Ingenia', estado: 'Reportado' });
     assert.deepEqual(interpretarRespuesta('modelo', 'Ingenio'), { valor: 'Ingenia', estado: 'Reportado' });
     assert.deepEqual(interpretarRespuesta('modelo', 'MX-200'), { valor: 'MX-200', estado: 'Reportado' });
+  });
+
+  it('una frase que niega o comenta no se guarda como marca ni modelo', () => {
+    assert.deepEqual(interpretarRespuesta('modelo', 'No hay un segundo modelo, es solo uno.'), { valor: null, estado: 'Desconocido' });
+    assert.deepEqual(interpretarRespuesta('marca', 'no lo vi bien'), { valor: null, estado: 'Desconocido' });
+    assert.deepEqual(interpretarRespuesta('modelo', 'creo que era uno grande de los nuevos que trajeron'), { valor: null, estado: 'Desconocido' });
+  });
+});
+
+describe('preguntaSegura', () => {
+  it('descarta un orden que el equipo no tiene y usa la plantilla', () => {
+    assert.equal(preguntaSegura('¿Cuántos años tiene el segundo resonador Philips?', 'el resonador Philips', 'antiguedad'), '¿Cuántos años tiene el resonador Philips?');
+    assert.equal(preguntaSegura('¿Cuál es el modelo del segundo resonador Philips en el hospital?', 'el resonador Philips', 'modelo'), '¿Qué modelo es el resonador Philips?');
+  });
+
+  it('respeta el orden cuando el equipo sí es el segundo', () => {
+    assert.equal(preguntaSegura('¿Cuántos años tiene el segundo resonador?', 'el segundo resonador', 'antiguedad'), '¿Cuántos años tiene el segundo resonador?');
+  });
+
+  it('descarta el contexto que el modelo inventa y deja pasar una pregunta corta', () => {
+    assert.equal(preguntaSegura('¿Cuál es el modelo del resonador Philips que se utilizó en el caso?', 'el resonador Philips', 'modelo'), '¿Qué modelo es el resonador Philips?');
+    assert.equal(preguntaSegura('¿Cuántos años tiene el resonador Philips?', 'el resonador Philips', 'antiguedad'), '¿Cuántos años tiene el resonador Philips?');
+  });
+
+  it('si el modelo no devolvió una pregunta, usa la plantilla', () => {
+    assert.equal(preguntaSegura('Dime la marca', 'el tomógrafo', 'marca'), '¿De qué marca es el tomógrafo?');
   });
 });
 
