@@ -17,6 +17,9 @@
 .linea.leida { outline: 2px solid #102a4c; outline-offset: 3px; border-radius: 2px; }
 .linea.dudosa { outline: 2px dashed #102a4c; outline-offset: 3px; border-radius: 2px; opacity: 0.6; }
 .placa-foto-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
+.placa-acciones { display: flex; gap: 8px; }
+.placa-imagen { max-width: calc(100% - 96px); max-height: calc(100% - 96px); border-radius: 6px; object-fit: contain; transition: opacity 0.2s; }
+.placa-imagen.leyendo { opacity: 0.55; }
 .placa-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .placa-leidos { display: flex; flex-direction: column; margin-top: 14px; }
 .placa-leido { display: grid; grid-template-columns: 130px minmax(0, 1fr) 150px 96px; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hair); }

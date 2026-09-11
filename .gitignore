@@ -2,6 +2,7 @@
 logs
 *.log
 perf.jsonl
+apps/server/fixtures/placas/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -1,0 +1,78 @@
+{
+  "porCampo": {
+    "Marca": {
+      "ok": 29,
+      "total": 30
+    },
+    "Modelo": {
+      "ok": 27,
+      "total": 30
+    },
+    "Número de serie": {
+      "ok": 28,
+      "total": 30
+    },
+    "Fabricación": {
+      "ok": 30,
+      "total": 30
+    }
+  },
+  "porVariacion": {
+    "limpia": {
+      "ok": 21,
+      "total": 24
+    },
+    "rotada": {
+      "ok": 23,
+      "total": 24
+    },
+    "desenfocada": {
+      "ok": 24,
+      "total": 24
+    },
+    "reflejo": {
+      "ok": 23,
+      "total": 24
+    },
+    "bajo contraste": {
+      "ok": 23,
+      "total": 24
+    }
+  },
+  "confirmados": {
+    "ok": 114,
+    "total": 115
+  },
+  "latencias": [
+    3906,
+    2420,
+    1951,
+    1967,
+    2185,
+    2479,
+    2065,
+    2266,
+    1905,
+    2314,
+    2955,
+    2215,
+    2304,
+    2240,
+    2399,
+    2469,
+    2152,
+    2622,
+    2046,
+    2455,
+    2058,
+    2004,
+    2401,
+    2432,
+    2247,
+    2281,
+    2280,
+    2181,
+    2148,
+    2294
+  ]
+}

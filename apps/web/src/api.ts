@@ -1,4 +1,4 @@
-import type { Extraccion, Transcripcion } from '@quorum/shared';
+import type { Extraccion, LecturaPlaca, Transcripcion } from '@quorum/shared';
 
 async function pedir<T>(ruta: string, init: RequestInit): Promise<T> {
   const respuesta = await fetch(ruta, init);
@@ -13,4 +13,6 @@ export const api = {
     pedir<Transcripcion>('/api/transcribir', { method: 'POST', headers: { 'Content-Type': audio.type || 'audio/wav' }, body: audio }),
   extraer: (texto: string) =>
     pedir<Extraccion>('/api/extraer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto }) }),
+  leerPlaca: (foto: Blob) =>
+    pedir<LecturaPlaca>('/api/placa', { method: 'POST', headers: { 'Content-Type': foto.type || 'image/png' }, body: foto }),
 };

@@ -84,7 +84,8 @@ export function Captura() {
     setEquipos(vista.equipos);
     setEncabezado(vista.encabezado);
     setRespuesta(null);
-    const partes = [msTranscripcion !== undefined ? `parakeet ${(msTranscripcion / 1000).toFixed(1)} s` : null, `qwen3-1.7b ${((performance.now() - t0) / 1000).toFixed(1)} s`];
+    const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
+    const partes = [msTranscripcion !== undefined ? `parakeet ${segundos(msTranscripcion)}` : null, `qwen3-1.7b ${segundos(performance.now() - t0)}`];
     setModelos(`${partes.filter(Boolean).join(' · ')} · en este dispositivo`);
     setFase('listo');
   };

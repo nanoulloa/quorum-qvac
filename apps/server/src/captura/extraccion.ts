@@ -1,7 +1,8 @@
 import type { DatoExtraido, Extraccion, Modalidad } from '@quorum/shared';
 import { completarJson } from '../qvac/inferir.ts';
 import type { ClaveModelo } from '../qvac/modelos.ts';
-import { clienteConocido } from './clientes.ts';
+import { CATALOGO, MARCA_DE_MODELO } from './catalogo.ts';
+import { clienteConocido, sinCiudad } from './clientes.ts';
 import { mencionaParecido, normalizar, numero, oraciones } from './texto.ts';
 
 const nulo = (tipo: string) => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
@@ -76,16 +77,6 @@ type Crudo = { cliente: string | null; ciudad: string | null; pais: string | nul
 
 const VACIOS = /^(unknown|desconocid[oa]|n\/?a|null|none|ninguno|sin dato|no se sabe|-+)$/i;
 const DUDA = /\b(parece|parecen|unos|unas|como|más o menos|aprox\w*|calculo|quiz[aá]s?|tal vez|creo|alrededor|supongo|estimo)\b/i;
-
-/** Líneas de producto conocidas. Sirve para corregir marca/modelo cruzados y completar el modelo. */
-const CATALOGO: Record<string, string[]> = {
-  Philips: ['Ingenia', 'Achieva', 'Incisive', 'Brilliance', 'EPIQ', 'Affiniti', 'Azurion'],
-  Siemens: ['Magnetom', 'Avanto', 'Skyra', 'Somatom', 'Acuson'],
-  GE: ['Signa', 'Revolution', 'Optima', 'Discovery', 'Logiq', 'Voluson'],
-  Canon: ['Vantage', 'Aquilion', 'Aplio'],
-};
-
-const MARCA_DE_MODELO = new Map(Object.entries(CATALOGO).flatMap(([marca, modelos]) => modelos.map((m) => [m.toLowerCase(), marca] as const)));
 
 /** Cómo se nombra cada modalidad en un dictado, con la palabra anterior para leer la cantidad. */
 const MENCIONES: [Modalidad, RegExp][] = [
@@ -186,10 +177,11 @@ export async function extraer(texto: string, anioActual = new Date().getFullYear
       { role: 'user', content: texto },
     ],
   });
-  const cliente = limpiar(crudo.cliente);
+  const ciudad = limpiar(crudo.ciudad);
+  const cliente = sinCiudad(limpiar(crudo.cliente), ciudad);
   return {
     cliente: dicho(clienteConocido(cliente) ?? cliente),
-    ciudad: dicho(limpiar(crudo.ciudad)),
+    ciudad: dicho(ciudad),
     pais: dicho(limpiar(crudo.pais)),
     equipos: corregir(crudo, texto, anioActual).map((e) => ({
       modalidad: e.modalidad,

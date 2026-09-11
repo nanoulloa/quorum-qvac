@@ -9,6 +9,8 @@
     "smoke": "tsx scripts/smoke.ts",
     "eval:extraccion": "tsx scripts/eval-extraccion.ts",
     "eval:voz": "tsx scripts/eval-voz.ts",
+    "placas:generar": "python3 scripts/generar-placas.py",
+    "eval:placas": "tsx scripts/eval-placas.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
