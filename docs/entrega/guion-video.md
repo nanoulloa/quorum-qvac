@@ -73,8 +73,8 @@ de bienvenida, borrar ese archivo. El código se recupera en cualquier momento d
 | 2a | 0:20 | Botón de micrófono, onda en movimiento, reloj corriendo, texto "Grabando · la voz no sale del dispositivo" | `/captura` → clic en el botón de micrófono | "Dicto lo que vi." Luego dictar: *"Estoy en el Hospital DemoCare Pacific, en Ciudad de Panamá. Hay dos resonadores y un tomógrafo. Uno de los resonadores es Philips, un Ingenia, que parece de unos ocho años. El tomógrafo lo cambiaron el año pasado."* |
 | 2b | 0:15 | Pie de la transcripción: "Transcribiendo en este dispositivo…", luego "Extrayendo datos…"; pasos Dictado → Extracción | Clic en el mismo botón para terminar | "Parakeet transcribe. Qwen extrae. Los dos corren aquí." |
 | 2c | 0:30 | Transcripción con los valores subrayados y su etiqueta (cliente, ciudad, marca, modelo). Panel Registro: tres equipos con Marca, Modelo, Antigüedad y su estado. Pie: `parakeet 1,2 s · qwen3-1.7b 4,1 s · en este dispositivo` (los tiempos son los de la toma) | Ninguno; dejar que el panel se llene | "Cliente, ciudad, país. Tres equipos, con marca, modelo y antigüedad. Cada dato lleva su estado: Reportado si lo dijo la persona, Estimado si dudó, Desconocido si no lo dijo. Del segundo resonador no dijo nada, y eso no rompe nada." |
-| 3 | 0:20 | Tarjeta azul: kicker "Falta un dato clave · " con la razón que redactó el modelo, pregunta **"¿Cuántos años tiene el segundo resonador?"**, y las respuestas `Menos de 5` · `5 a 10` · `Más de 10` · `No sé`, más el campo de texto y el micrófono. Después, "Anotado: 5 a 10 como Estimado" y el Registro con `7 años` Estimado. Botón Guardar visita → "Visita guardada" y la línea de firma | `/captura` → clic en "5 a 10" → clic en "Guardar visita" | "Cuando falta algo, Quorum lo pide. Qué preguntar lo decide una regla, no el modelo: la antigüedad de un resonador pesa más que la marca de un ecógrafo. El modelo solo redacta. La respuesta entra como Estimado, no como dato duro. Guardo: queda firmada por este dispositivo y se comparte al sincronizar." |
-| 4 | 0:55 | Ver sección 4 | `/captura` → "Foto de placa" en el resonador 01 → `/captura/placa` | Ver sección 4 |
+| 3 | 0:20 | Tarjeta azul: kicker "Falta un dato clave · " con la razón que redactó el modelo, pregunta **"¿Cuántos años tiene el segundo resonador?"**, el botón **Leer en voz alta** y las respuestas `Menos de 5` · `5 a 10` · `Más de 10` · `No sé`, más el campo de texto y el micrófono. Después, "Anotado: 5 a 10 como Estimado" y el Registro con `7 años` Estimado. **Todavía no se guarda:** la visita se guarda al final de la toma 4, ya con la foto | `/captura` → (opcional, antes de responder) clic en "Leer en voz alta" → clic en "5 a 10" | "Cuando falta algo, Quorum lo pide, y me lo puede leer en voz alta sin internet. Qué preguntar lo decide una regla, no el modelo: la antigüedad de un resonador pesa más que la marca de un ecógrafo. El modelo solo redacta. La respuesta entra como Estimado, no como dato duro." |
+| 4 | 0:55 | Ver sección 4 | `/captura` → "Foto de placa" en el resonador 01 → el lector se abre encima de la visita → "Aplicar a este equipo" → "Guardar visita" | Ver sección 4 |
 | 5 | 0:20 | Ficha de DemoCare: resumen, tabla de equipos con testigos y confianza; a la derecha, Desglose de confianza con Completitud 35%, Testigos independientes 35%, Evidencia 20%, Frescura 10% | Riel izquierdo → Hospitales → clic en "Hospital DemoCare Pacific" → clic en la fila del resonador | "Esta es la ficha del cliente. La confianza no es una probabilidad del modelo: son cuatro factores que se pueden auditar. Cuántos datos hay, cuántas personas distintas lo vieron, con qué evidencia, y hace cuánto." |
 | 5b | 0:15 | Base instalada: mapa de Latinoamérica con los países coloreados por cantidad, filtros de país, modalidad y confianza, tabla por cliente y los paneles de renovación y datos sin verificar | Riel → Base instalada → clic en un país del mapa | "Y esta es la base instalada completa, sumando todos los clientes. Filtro por país tocando el mapa, y a la derecha quedan los equipos a los que les toca renovación y los que nadie verifica hace más de seis meses." |
 | 6 | 0:55 | Ver sección 5 | `/red` en ambas laptops | Ver sección 5 |
@@ -85,18 +85,21 @@ de bienvenida, borrar ese archivo. El código se recupera en cualquier momento d
 
 Esta es la toma que prueba que VisionPsy es central y local. Grabarla sin cortes.
 
-1. En `/captura`, clic en **Foto de placa** del resonador 01 → `/captura/placa`.
+1. En `/captura`, clic en **Foto de placa** del resonador 01. El lector se abre **encima de la
+   visita**: la transcripción y el Registro siguen debajo, sin guardar y sin perderse.
 2. Clic en **Tomar foto** y fotografiar con la webcam una placa impresa, o **Usar placa de ejemplo**
    si la luz falla. Modo avión sigue encendido: se ve en la misma toma.
-3. Mientras lee, el visor muestra la foto atenuada y el pie dice
-   **"Leyendo la placa en este dispositivo…"**. No cortar aquí.
-4. Al terminar, en pantalla:
-   - **Campos leídos**: Marca, Modelo, Número de serie, Fabricación, cada uno con su número de
-     confianza, su barra y su estado.
-   - **Pie**: `visionpsy-nano-460m · Q8_0 · en este dispositivo · 2,3 s` — el tiempo real de la toma.
-   - **Cambios en el registro**: Modelo `Ingenia` Reportado → `Ingenia 1.5T` Confirmado;
-     Número de serie Desconocido → `45021` Confirmado.
-5. Sin salir, ir a **Rendimiento** y dejar 4 segundos el renglón `visionpsy-nano-460m`, con
+3. Mientras lee, la foto se ve atenuada y la nota dice **"Leyendo la placa en este dispositivo…"**.
+   No cortar aquí.
+4. Al terminar, en el lector:
+   - **Campos leídos**: Marca, Modelo, Número de serie y Fabricación, cada uno con su estado.
+   - **Pie**: `visionpsy-nano-460m · Q8_0 · en este dispositivo · <t> s`, con el tiempo real de la toma.
+5. Clic en **Aplicar a este equipo**. El lector se cierra y en el Registro el resonador 01 queda
+   `Philips` · `Ingenia 1.5T` · `9 años`, todo **Confirmado**, con el botón "Foto aplicada".
+   Un campo solo se reemplaza si la foto es al menos tan firme como lo dictado.
+6. Clic en **Guardar visita** → "Visita guardada" y la línea de firma. El resonador se guarda con la
+   serie `45021` y evidencia de foto.
+7. Ir a **Rendimiento** y dejar 4 segundos el renglón `visionpsy-nano-460m`, con
    **Cuantización Q8_0**, **Dónde corre: Este dispositivo**, **Carga**, **Primer token** y **tok/s**.
    Esa fila es la prueba de que no se delegó.
 
@@ -104,7 +107,9 @@ Narración: *"La placa es la fuente más confiable que hay en el hospital. Visio
 de parámetros, lee marca, modelo, serie y fecha en esta misma laptop, en modo avión. La confianza de
 cada campo no la inventa el modelo: se valida contra el catálogo de marcas y contra el formato de
 serie y de fecha. Lo que no llega a 70 queda Estimado. Medido sobre 30 placas sintéticas: 95% de los
-campos, y de lo que marca Confirmado, 99% correcto."*
+campos, y de lo que marca Confirmado, 99% correcto. Aplico la lectura a este resonador y guardo: queda
+firmada por este dispositivo, con la foto como evidencia."* Si la toma pasa de 0:55, recortar la
+primera frase.
 
 ## 5 · La toma P2P (toma 6 · 0:55)
 

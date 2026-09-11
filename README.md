@@ -5,9 +5,11 @@
 Los ingenieros de servicio y vendedores de Philips visitan hospitales todos los días y ven qué equipos tiene cada cliente. Hoy ese conocimiento se pierde en notas y memoria. Con Quorum lo dictan al salir de la visita y queda un inventario estructurado y confiable:
 
 - **Captura hablando.** El dictado se transcribe y se convierte en cliente, ciudad, país, modalidad, cantidad, marca, modelo y antigüedad, cada dato con su estado: Confirmado, Reportado, Estimado o Desconocido.
-- **Confirma con una foto.** VisionPsy lee la placa del equipo y pasa los datos a Confirmado.
+- **Pregunta lo que falta.** Una regla elige el dato más valioso que falta y el modelo solo redacta la pregunta. La pregunta se puede escuchar en voz alta, también sin internet.
+- **Confirma con una foto.** Dentro de la misma visita, VisionPsy lee la placa del equipo y pasa marca, modelo, antigüedad y serie a Confirmado.
 - **Se confirma entre colegas.** Cada dispositivo firma lo que reporta y sincroniza directo con los demás. Cuando personas distintas reportan el mismo equipo, su confianza sube.
-- **Nada sale del dispositivo.** Toda la inferencia corre local con `@qvac/sdk`. No hay APIs de IA remotas.
+- **Consulta y ubica la base.** Preguntas en lenguaje natural, escritas o por voz, un mapa por país y exportación a CSV. Si un colega ofrece su laptop, las consultas corren allá con un modelo más grande.
+- **Sin nube.** Toda la inferencia corre con `@qvac/sdk` en los dispositivos del equipo; fotos y dictados nunca salen de cada uno. No hay APIs de IA remotas.
 
 ## Correr en local
 
