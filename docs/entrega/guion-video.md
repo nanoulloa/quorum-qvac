@@ -8,16 +8,21 @@ Lo que no existe está en la última sección, no en las tomas.
 | # | Segmento | Duración | Acumulado |
 |---|---|---|---|
 | 1 | Problema, promesa y modo avión | 0:25 | 0:25 |
-| 2 | Dictado y extracción en el dispositivo | 1:05 | 1:30 |
-| 3 | Pregunta por el dato que falta y guardar | 0:20 | 1:50 |
-| 4 | **VisionPsy lee la placa** (toma del track Psy) | 0:55 | 2:45 |
-| 5 | Ficha del hospital y confianza | 0:20 | 3:05 |
-| 6 | **Red P2P entre dos laptops** y duplicado | 0:55 | 4:00 |
-| 7 | Consulta en lenguaje natural y renovación | 0:20 | 4:20 |
-| 8 | Rendimiento y cierre | 0:25 | 4:45 |
+| 2 | Dictado y extracción en el dispositivo | 0:55 | 1:20 |
+| 3 | Pregunta por el dato que falta y guardar | 0:20 | 1:40 |
+| 4 | **VisionPsy lee la placa** (toma del track Psy) | 0:55 | 2:35 |
+| 5 | Ficha del hospital y confianza | 0:20 | 2:55 |
+| 5b | **Base instalada**: mapa, filtros y renovación | 0:15 | 3:10 |
+| 6 | **Red P2P entre dos laptops** y duplicado | 0:55 | 4:05 |
+| 7 | Consulta en lenguaje natural y renovación | 0:20 | 4:25 |
+| 8 | Rendimiento y cierre | 0:25 | 4:50 |
 
-Total grabado 4:45. Quedan 15 s de margen sobre el límite de 5:00.
-El peso está donde puntúa: núcleo técnico (2, 4, 6, 8) = 3:20 de 4:45.
+Total grabado 4:50. Quedan 10 s de margen sobre el límite de 5:00.
+El peso está donde puntúa: núcleo técnico (2, 4, 6, 8) = 3:10 de 4:50.
+
+La toma 5b existe porque la **vista agregada de todos los clientes es uno de los seis puntos
+obligatorios de Philips** y el guion no la mostraba. Los 15 s salen del dictado (toma 2), que tenía
+el margen más holgado.
 
 ## 2 · Antes de grabar
 
@@ -71,6 +76,7 @@ de bienvenida, borrar ese archivo. El código se recupera en cualquier momento d
 | 3 | 0:20 | Tarjeta azul: kicker "Falta un dato clave · " con la razón que redactó el modelo, pregunta **"¿Cuántos años tiene el segundo resonador?"**, y las respuestas `Menos de 5` · `5 a 10` · `Más de 10` · `No sé`, más el campo de texto y el micrófono. Después, "Anotado: 5 a 10 como Estimado" y el Registro con `7 años` Estimado. Botón Guardar visita → "Visita guardada" y la línea de firma | `/captura` → clic en "5 a 10" → clic en "Guardar visita" | "Cuando falta algo, Quorum lo pide. Qué preguntar lo decide una regla, no el modelo: la antigüedad de un resonador pesa más que la marca de un ecógrafo. El modelo solo redacta. La respuesta entra como Estimado, no como dato duro. Guardo: queda firmada por este dispositivo y se comparte al sincronizar." |
 | 4 | 0:55 | Ver sección 4 | `/captura` → "Foto de placa" en el resonador 01 → `/captura/placa` | Ver sección 4 |
 | 5 | 0:20 | Ficha de DemoCare: resumen, tabla de equipos con testigos y confianza; a la derecha, Desglose de confianza con Completitud 35%, Testigos independientes 35%, Evidencia 20%, Frescura 10% | Riel izquierdo → Hospitales → clic en "Hospital DemoCare Pacific" → clic en la fila del resonador | "Esta es la ficha del cliente. La confianza no es una probabilidad del modelo: son cuatro factores que se pueden auditar. Cuántos datos hay, cuántas personas distintas lo vieron, con qué evidencia, y hace cuánto." |
+| 5b | 0:15 | Base instalada: mapa de Latinoamérica con los países coloreados por cantidad, filtros de país, modalidad y confianza, tabla por cliente y los paneles de renovación y datos sin verificar | Riel → Base instalada → clic en un país del mapa | "Y esta es la base instalada completa, sumando todos los clientes. Filtro por país tocando el mapa, y a la derecha quedan los equipos a los que les toca renovación y los que nadie verifica hace más de seis meses." |
 | 6 | 0:55 | Ver sección 5 | `/red` en ambas laptops | Ver sección 5 |
 | 7 | 0:20 | Consultas con la pregunta escrita; chips "País **Brasil**", "Modalidad **Resonancia magnética**", "Antigüedad **desde 8 años**"; tabla de resultados; pie `qwen3-1.7b · Q4 + reglas · en este dispositivo · <t> s` | Riel → Consultas → clic en el ejemplo "Clientes en Brasil con resonadores de más de siete años" | "Pregunto con mis palabras. País, modalidad y años los leen reglas; el modelo solo propone cliente y ciudad, y solo se aceptan si existen en la base. Nada de código generado. Quedan los filtros a la vista, y se pueden quitar. Estos son los equipos a los que les toca renovación." |
 | 8 | 0:25 | Rendimiento: "Inferencia en APIs remotas · 0", hardware, inferencias registradas, primer token mediano; tabla de modelos con cuantización, "Dónde corre · Este dispositivo", carga, primer token y tok/s; registro `perf.jsonl` | Riel → Rendimiento | "Todo lo que vieron quedó registrado: modelo, cuantización, carga, primer token y tokens por segundo. Cero llamadas a APIs remotas. Está en `perf.jsonl` y se puede abrir." |
@@ -144,19 +150,16 @@ y el registro de cada inferencia en el repositorio."*
 
 ## Lo que NO se muestra y por qué
 
-- **Consulta y respuesta por voz.** Los botones de micrófono de Consultas y de la pregunta de
-  seguimiento no tienen acción. Solo se dicta en Captura.
-- **Exportar CSV** (Base instalada, Consultas, Hospitales) y **Agregar dispositivo** (Red P2P):
-  botones sin acción todavía.
 - **El código de equipo no debe aparecer en cámara.** Es lo que deja entrar a un dispositivo al
   equipo. El primer uso y la pantalla "Agregar dispositivo" se hacen antes de grabar.
-- **Exportar CSV y consulta por voz** llegaron con el PR #39; verificar en la máquina antes de
-  guionizar una toma sobre ellos.
 - **Duplicados sin embeddings.** `embeddinggemma-300m` está en el catálogo de modelos pero ninguna
   ruta lo llama; el emparejamiento de la pantalla Red es por reglas (mismo cliente, misma modalidad,
   marcas compatibles, antigüedad cercana, personas distintas). No atribuirlo a un modelo.
-- **`qwen3-4b` no se usa.** Está en el catálogo de modelos, pero las consultas las interpreta
-  `qwen3-1.7b` más reglas. El pie de la pantalla dice cuál corrió: leerlo, no anticiparlo.
-- **Inferencia delegada a otro dispositivo** (P2-01): no existe. La columna "Dónde corre" siempre dice
-  "Este dispositivo", que es justo lo que pide el track Psy.
-- **Mapa** (P2-04): no existe. La distribución geográfica se muestra con las barras por país.
+- **Qué modelo corre una consulta depende de si hay un par.** En este dispositivo la interpreta
+  `qwen3-1.7b` más reglas; si un par del equipo está en línea puede resolverla con `qwen3-4b`. El pie
+  de la pantalla dice cuál corrió y dónde: leerlo, no anticiparlo. Y si se muestra una consulta
+  delegada, decir en voz alta que el par es otra laptop del equipo, no un servidor.
+- **La lectura de placa nunca se delega.** Aunque las consultas puedan resolverse en un par, la
+  columna "Dónde corre" de VisionPsy dice siempre "Este dispositivo", que es justo lo que exige el
+  track Psy. Vale la pena señalarlo en la toma 8.
+
