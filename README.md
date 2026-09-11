@@ -11,6 +11,8 @@ Los ingenieros de servicio y vendedores de Philips visitan hospitales todos los 
 - **Consulta y ubica la base.** Preguntas en lenguaje natural, escritas o por voz, un mapa por país y exportación a CSV. Si un colega ofrece su laptop, las consultas corren allá con un modelo más grande.
 - **Sin nube.** Toda la inferencia corre con `@qvac/sdk` en los dispositivos del equipo; fotos y dictados nunca salen de cada uno. No hay APIs de IA remotas.
 
+**Video demo:** https://www.youtube.com/watch?v=Gu_Qfnz1wJA
+
 **Pitch deck:** [`docs/entrega/pitch-deck.pdf`](docs/entrega/pitch-deck.pdf)
 
 No hay una versión en la nube a propósito: la IA corre en la laptop de cada ingeniero. Para probarlo, sigue [Correr en local](#correr-en-local).
@@ -168,7 +170,7 @@ npm run prueba:p2p -w @quorum/server
 
 ## Equipo
 
-Tanebi: Nano ([@nanoulloa](https://github.com/nanoulloa)), Steven ([@StevenMend](https://github.com/StevenMend)) y JP.
+Tanebi: Mariano Ulloa ([@nanoulloa](https://github.com/nanoulloa)), Rodrigo Mendez y Jean Pool Cruz.
 
 ## Licencia
 
