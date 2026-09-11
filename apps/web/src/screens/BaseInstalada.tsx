@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconClock, IconDownload } from '../components/icons';
 import { ConfidenceBar, PageHeader } from '../components/ui';
 import { useBase } from '../datos/base';
+import { exportarCsv } from '../datos/csv';
 import { esRenovacion, haceDias, sinVerificar } from '../datos/reglas';
 import './BaseInstalada.css';
 
@@ -78,8 +79,12 @@ export function BaseInstalada() {
       <PageHeader
         eyebrow="Análisis"
         title="Base instalada"
-        subtitle={`${filtrados.length} equipos en ${filas.length} clientes`}
-        actions={<button type="button" className="btn btn-ghost"><IconDownload /> Exportar CSV</button>}
+        subtitle={`${filtrados.length} ${filtrados.length === 1 ? 'equipo' : 'equipos'} en ${filas.length} ${filas.length === 1 ? 'cliente' : 'clientes'}`}
+        actions={
+          <button type="button" className="btn btn-ghost" onClick={() => exportarCsv('base-instalada', filtrados, clientes)} disabled={filtrados.length === 0}>
+            <IconDownload /> Exportar CSV
+          </button>
+        }
       />
 
       <div className="filtros">

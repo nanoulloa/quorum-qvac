@@ -4,6 +4,7 @@ import { Link, NavLink, useParams } from 'react-router-dom';
 import { IconCamera, IconDownload, IconMic } from '../components/icons';
 import { Avatars, ConfidenceBar, PageHeader, StatusPill, nivelConfianza } from '../components/ui';
 import { useBase } from '../datos/base';
+import { exportarCsv } from '../datos/csv';
 import { esRenovacion, estadoGeneral, evidenciaTexto, haceDias, sinVerificar } from '../datos/reglas';
 import './Hospitales.css';
 
@@ -38,12 +39,15 @@ export function Hospitales() {
     <div className="hospitales">
       <aside className="hospitales-lista" aria-label="Clientes">
         <div className="eyebrow">{clientes.length} clientes</div>
-        {clientes.map((c) => (
-          <NavLink key={c.id} to={`/hospitales/${c.id}`} className={() => `cliente-item${c.id === cliente.id ? ' active' : ''}`}>
-            <span className="cliente-nombre">{c.nombre}</span>
-            <span className="faint">{c.ciudad} · {equipos.filter((e) => e.clienteId === c.id).length} equipos</span>
-          </NavLink>
-        ))}
+        {clientes.map((c) => {
+          const n = equipos.filter((e) => e.clienteId === c.id).length;
+          return (
+            <NavLink key={c.id} to={`/hospitales/${c.id}`} className={() => `cliente-item${c.id === cliente.id ? ' active' : ''}`}>
+              <span className="cliente-nombre">{c.nombre}</span>
+              <span className="faint">{c.ciudad} · {n} {n === 1 ? 'equipo' : 'equipos'}</span>
+            </NavLink>
+          );
+        })}
       </aside>
 
       <div className="hospitales-detalle">
@@ -53,7 +57,9 @@ export function Hospitales() {
           subtitle={`Última verificación ${haceDias(ultima)} · ${personasAqui} ${personasAqui === 1 ? 'persona ha' : 'personas han'} reportado aquí`}
           actions={
             <>
-              <button type="button" className="btn btn-ghost"><IconDownload /> Exportar CSV</button>
+              <button type="button" className="btn btn-ghost" onClick={() => exportarCsv(cliente.id, lista, clientes)} disabled={lista.length === 0}>
+                <IconDownload /> Exportar CSV
+              </button>
               <Link to={`/captura/placa?cliente=${cliente.id}`} className="btn btn-ghost"><IconCamera /> Foto de placa</Link>
               <Link to="/captura" className="btn btn-primary"><IconMic /> Nueva visita</Link>
             </>
