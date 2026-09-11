@@ -7,6 +7,7 @@
 .cliente-item.active .cliente-nombre { color: var(--navy); }
 .cliente-nombre { font-size: 14px; font-weight: 500; }
 .hospitales-detalle { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.hospitales-vacio { align-self: flex-start; }
 .hospital-grid { grid-template-columns: minmax(0, 1fr) 340px; }
 .hospital-tabla { overflow: auto; }
 .hospital-cols { grid-template-columns: minmax(0, 1.7fr) 0.8fr 1fr 1.1fr 0.8fr 0.9fr; }

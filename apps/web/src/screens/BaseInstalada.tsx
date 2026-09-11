@@ -73,6 +73,7 @@ export function BaseInstalada() {
 
   const renovacion = filtrados.filter(esRenovacion).sort((a, b) => (b.anios ?? 0) - (a.anios ?? 0));
   const viejos = filtrados.filter(sinVerificar).sort((a, b) => b.dias - a.dias);
+  const sinDatos = equipos.length === 0;
 
   return (
     <>
@@ -107,7 +108,7 @@ export function BaseInstalada() {
                   </div>
                 </div>
               ))}
-              {porPais.length === 0 && <p className="faint lista-vacia">Sin equipos con estos filtros.</p>}
+              {porPais.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Todavía no hay equipos. Dicta una visita para empezar.' : 'Sin equipos con estos filtros.'}</p>}
             </div>
           </section>
 
@@ -126,6 +127,7 @@ export function BaseInstalada() {
                 <ConfidenceBar valor={f.confianza} />
               </div>
             ))}
+            {filas.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Aquí aparece cada cliente con sus equipos.' : 'Ningún cliente con estos filtros.'}</p>}
           </section>
         </div>
 
@@ -141,7 +143,7 @@ export function BaseInstalada() {
                 </button>
               );
             })}
-            {renovacion.length === 0 && <p className="faint lista-vacia">Ninguna con estos filtros.</p>}
+            {renovacion.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Sin equipos todavía.' : 'Ninguna con estos filtros.'}</p>}
           </section>
 
           <section className="card lista-lateral">
@@ -156,7 +158,7 @@ export function BaseInstalada() {
                 </button>
               );
             })}
-            {viejos.length === 0 && <p className="faint lista-vacia">Todo verificado recientemente.</p>}
+            {viejos.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Sin equipos todavía.' : 'Todo verificado recientemente.'}</p>}
           </section>
         </div>
       </div>
