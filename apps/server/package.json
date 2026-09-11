@@ -17,6 +17,7 @@
     "perf:resumen": "tsx scripts/resumen-perf.ts",
     "test": "tsx --test src/**/*.test.ts",
     "semilla": "curl -s -X POST http://127.0.0.1:${QUORUM_API_PORT:-4000}/api/semilla",
+    "test": "tsx --test 'src/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

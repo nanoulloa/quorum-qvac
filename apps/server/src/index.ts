@@ -2,9 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import os from 'node:os';
 import { createRequire } from 'node:module';
-import type { NuevaDecision, NuevaObservacion } from '@quorum/shared';
-import type { Sistema } from '@quorum/shared';
+import type { CampoPregunta, Extraccion, Faltante, NuevaDecision, NuevaObservacion, Sistema } from '@quorum/shared';
 import { extraer } from './captura/extraccion.ts';
+import { elegirFaltante, interpretarRespuesta, redactarPregunta } from './captura/pregunta.ts';
 import { interpretarConsulta } from './consultas/consulta.ts';
 import { Almacen } from './datos/almacen.ts';
 import { sembrar } from './datos/semilla.ts';
@@ -42,6 +42,20 @@ app.post<{ Body: { texto?: string } }>('/api/extraer', async (req, reply) => {
   const texto = req.body?.texto?.trim();
   if (!texto) return reply.code(400).send({ error: 'Falta "texto".' });
   return extraer(texto);
+});
+
+// La regla elige el dato que falta; el modelo solo redacta la pregunta.
+app.post<{ Body: { extraccion?: Extraccion; omitidos?: Faltante[] } }>('/api/pregunta', async (req, reply) => {
+  const extraccion = req.body?.extraccion;
+  if (!Array.isArray(extraccion?.equipos)) return reply.code(400).send({ error: 'Falta "extraccion".' });
+  const faltante = elegirFaltante(extraccion, req.body.omitidos ?? []);
+  return faltante && redactarPregunta(extraccion, faltante);
+});
+
+app.post<{ Body: { campo?: CampoPregunta; texto?: string } }>('/api/respuesta', async (req, reply) => {
+  const { campo, texto } = req.body ?? {};
+  if (!campo || !texto?.trim()) return reply.code(400).send({ error: 'Faltan "campo" y "texto".' });
+  return interpretarRespuesta(campo, texto);
 });
 
 app.post('/api/placa', async (req, reply) => {
