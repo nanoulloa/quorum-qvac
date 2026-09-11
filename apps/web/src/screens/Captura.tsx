@@ -1,12 +1,12 @@
-import type { CampoPregunta, DatoExtraido, Evidencia, Extraccion, Faltante, Pregunta, Respuesta } from '@quorum/shared';
-import { useState } from 'react';
+import type { CampoPregunta, DatoExtraido, Estado, Evidencia, Extraccion, Faltante, Pregunta, Respuesta } from '@quorum/shared';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { IconCamera, IconCheck, IconMic, IconSend } from '../components/icons';
 import { PageHeader, StatusPill, Steps } from '../components/ui';
 import { useGrabadora } from '../components/useGrabadora';
 import { useBase } from '../datos/base';
-import { captura, clientePorId, type Dato, type Segmento } from '../mocks/data';
+import type { Dato, Segmento } from '../mocks/data';
 
 const PASOS = ['Dictado', 'Extracción', 'Preguntas', 'Foto de placa', 'Guardar'];
 const ONDA = [6, 10, 16, 24, 14, 28, 20, 10, 22, 32, 18, 8, 14, 26, 22, 12, 6, 20, 34, 24, 14, 10, 22, 30, 12, 20, 8, 14, 24, 30, 18, 10, 20, 12, 26, 22, 8, 14, 10, 6, 12, 20, 26, 16, 10, 14, 8, 6, 10, 7, 5, 6, 4, 5, 4, 3, 4, 3, 3, 3, 4, 3, 3, 3, 3, 3];
@@ -15,11 +15,28 @@ type Fase = 'listo' | 'grabando' | 'transcribiendo' | 'extrayendo' | 'guardando'
 type EquipoVista = { id: string; nombre: string; campos: Record<string, Dato> };
 type Encabezado = { cliente: string | null; lugar: string | null };
 
+/** Pantalla en blanco: la usan el arranque y "Nueva visita", para que no se separen. */
+const VACIO = {
+  transcripcion: [] as Segmento[],
+  equipos: [] as EquipoVista[],
+  encabezado: { cliente: null, lugar: null } as Encabezado,
+  modelos: 'parakeet · qwen3-1.7b · en este dispositivo',
+};
+
 const NOMBRE: Record<string, string> = { 'Resonancia magnética': 'Resonador magnético', Tomografía: 'Tomógrafo', Ecografía: 'Ecógrafo', 'Rayos X': 'Equipo de rayos X', Otro: 'Otro equipo' };
 
 const anios = (n: number | null) => (n === null ? null : n === 1 ? '1 año' : `${n} años`);
 const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
 const reloj = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+const horaLocal = () => new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+/** Traduce el rechazo de getUserMedia (en inglés) a algo accionable para quien dicta. */
+const mensajeMicrofono = (e: unknown): string => {
+  const nombre = e instanceof Error ? e.name : '';
+  if (nombre === 'NotAllowedError' || nombre === 'SecurityError') return 'El navegador está bloqueando el micrófono. Habilítalo desde el candado en la barra de direcciones.';
+  if (nombre === 'NotFoundError' || nombre === 'DevicesNotFoundError') return 'No se encontró un micrófono.';
+  return 'No se pudo acceder al micrófono.';
+};
+
 /** Mismo identificador de cliente que arma el servidor en la base instalada. */
 const idCliente = (nombre: string) =>
   nombre.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9ñ\s]/g, ' ').trim().replace(/\s+/g, '-');
@@ -51,44 +68,49 @@ function conRespuesta(r: Extraccion, indice: number, campo: CampoPregunta, dato:
 
 /** Resalta en la transcripción los valores que la IA extrajo. */
 function anotar(texto: string, r: Extraccion): Segmento[] {
+  const estimado = (d: { estado: Estado }) => d.estado === 'Estimado';
   const marcas = [
-    [r.cliente.valor, 'cliente'],
-    [r.ciudad.valor, 'ciudad'],
-    [r.pais.valor, 'país'],
-    ...r.equipos.flatMap((e) => [[e.marca.valor, 'marca'], [e.modelo.valor, 'modelo']]),
-  ].filter((m): m is [string, string] => Boolean(m[0]));
+    [r.cliente.valor, 'cliente', estimado(r.cliente)],
+    [r.ciudad.valor, 'ciudad', estimado(r.ciudad)],
+    [r.pais.valor, 'país', estimado(r.pais)],
+    ...r.equipos.flatMap((e) => [
+      [e.marca.valor, 'marca', estimado(e.marca)],
+      [e.modelo.valor, 'modelo', estimado(e.modelo)],
+      // La antigüedad se subraya por su frase ("unos ocho años"), no por el número.
+      [e.antiguedad.frase ?? null, 'antigüedad', estimado(e.antiguedad)],
+    ]),
+  ].filter((m): m is [string, string, boolean] => Boolean(m[0]));
   const segmentos: Segmento[] = [];
   let resto = texto;
   while (resto) {
-    let mejor: { i: number; valor: string; etiqueta: string } | null = null;
-    for (const [valor, etiqueta] of marcas) {
+    let mejor: { i: number; valor: string; etiqueta: string; estimado: boolean } | null = null;
+    for (const [valor, etiqueta, esEstimado] of marcas) {
       const i = resto.toLowerCase().indexOf(valor.toLowerCase());
-      if (i >= 0 && (!mejor || i < mejor.i)) mejor = { i, valor, etiqueta };
+      if (i >= 0 && (!mejor || i < mejor.i)) mejor = { i, valor, etiqueta, estimado: esEstimado };
     }
     if (!mejor) {
       segmentos.push(resto);
       break;
     }
     if (mejor.i > 0) segmentos.push(resto.slice(0, mejor.i));
-    segmentos.push({ texto: resto.slice(mejor.i, mejor.i + mejor.valor.length), etiqueta: mejor.etiqueta });
+    segmentos.push({ texto: resto.slice(mejor.i, mejor.i + mejor.valor.length), etiqueta: mejor.etiqueta, estimado: mejor.estimado });
     resto = resto.slice(mejor.i + mejor.valor.length);
   }
   return segmentos;
 }
 
 export function Captura() {
-  const demo = clientePorId(captura.clienteId);
   const grabadora = useGrabadora();
   const grabadoraRespuesta = useGrabadora();
   const { red, recargar } = useBase();
   const [fase, setFase] = useState<Fase>('listo');
   const [error, setError] = useState<string | null>(null);
-  const [transcripcion, setTranscripcion] = useState<Segmento[]>(captura.transcripcion);
+  const [transcripcion, setTranscripcion] = useState<Segmento[]>(VACIO.transcripcion);
   const [dictado, setDictado] = useState<{ texto: string; fuente: Evidencia } | null>(null);
   const [extraccion, setExtraccion] = useState<Extraccion | null>(null);
-  const [equipos, setEquipos] = useState<EquipoVista[]>(captura.equipos);
-  const [encabezado, setEncabezado] = useState<Encabezado>({ cliente: demo?.nombre ?? null, lugar: demo ? `${demo.ciudad}, ${demo.pais}` : null });
-  const [modelos, setModelos] = useState('parakeet · qwen3-1.7b · datos de ejemplo');
+  const [equipos, setEquipos] = useState<EquipoVista[]>(VACIO.equipos);
+  const [encabezado, setEncabezado] = useState<Encabezado>(VACIO.encabezado);
+  const [modelos, setModelos] = useState(VACIO.modelos);
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
   const [preguntadas, setPreguntadas] = useState<Faltante[]>([]);
   const [preguntando, setPreguntando] = useState(false);
@@ -96,6 +118,32 @@ export function Captura() {
   const [respuestaTexto, setRespuestaTexto] = useState('');
   const [guardada, setGuardada] = useState<{ cliente: string | null } | null>(null);
   const [texto, setTexto] = useState('');
+  const [inicio, setInicio] = useState<string | null>(null);
+  const [avisoCliente, setAvisoCliente] = useState(false);
+  const campoTexto = useRef<HTMLInputElement>(null);
+
+  /** La hora de la visita es la del primer dictado; tras guardar, el próximo dictado abre una hora nueva. */
+  const marcarInicio = () => setInicio((h) => (guardada ? horaLocal() : (h ?? horaLocal())));
+
+  const nuevaVisita = () => {
+    setFase('listo');
+    setError(null);
+    setTranscripcion(VACIO.transcripcion);
+    setDictado(null);
+    setExtraccion(null);
+    setEquipos(VACIO.equipos);
+    setEncabezado(VACIO.encabezado);
+    setModelos(VACIO.modelos);
+    setPregunta(null);
+    setPreguntadas([]);
+    setPreguntando(false);
+    setRespuesta(null);
+    setRespuestaTexto('');
+    setGuardada(null);
+    setTexto('');
+    setInicio(null);
+    setAvisoCliente(false);
+  };
 
   /** El servidor elige el dato que más falta y redacta la pregunta; la tarjeta solo la muestra. */
   const preguntar = async (fuente: Extraccion, omitidos: Faltante[]) => {
@@ -124,6 +172,7 @@ export function Captura() {
     setPregunta(null);
     setPreguntadas([]);
     setGuardada(null);
+    setAvisoCliente(false);
     const partes = [msTranscripcion !== undefined ? `parakeet ${segundos(msTranscripcion)}` : null, `qwen3-1.7b ${segundos(performance.now() - t0)}`];
     setModelos(`${partes.filter(Boolean).join(' · ')} · en este dispositivo`);
     setFase('listo');
@@ -139,7 +188,14 @@ export function Captura() {
     setError(null);
     try {
       if (!grabadora.grabando) {
-        await grabadora.iniciar();
+        try {
+          await grabadora.iniciar();
+        } catch (e) {
+          // getUserMedia rechaza en inglés (p. ej. "Permission denied"); el original queda en consola.
+          console.error(e);
+          throw new Error(mensajeMicrofono(e));
+        }
+        marcarInicio();
         setFase('grabando');
         return;
       }
@@ -157,6 +213,7 @@ export function Captura() {
     const contenido = texto.trim();
     if (!contenido) return;
     setError(null);
+    marcarInicio();
     setTexto('');
     setTranscripcion([contenido]);
     await procesar(contenido, 'texto').catch(conError);
@@ -206,6 +263,12 @@ export function Captura() {
 
   const guardar = async () => {
     if (!extraccion || !dictado) return;
+    // Sin cliente el log conserva la visita, pero la base instalada la ignora: se avisa una vez.
+    if (extraccion.cliente.valor === null && !avisoCliente) {
+      setAvisoCliente(true);
+      campoTexto.current?.focus();
+      return;
+    }
     setError(null);
     setFase('guardando');
     try {
@@ -233,7 +296,7 @@ export function Captura() {
   return (
     <>
       <PageHeader
-        eyebrow="Visita en curso"
+        eyebrow={inicio ? `Visita en curso · ${inicio}` : 'Nueva visita'}
         title={encabezado.cliente ?? 'Nueva visita'}
         subtitle={encabezado.lugar ?? 'Cliente sin identificar'}
         actions={
@@ -248,6 +311,10 @@ export function Captura() {
           </button>
         }
       />
+
+      {avisoCliente && !guardada && (
+        <p className="note">Sin cliente identificado la visita no aparece en Hospitales. Dicta o escribe el nombre del hospital.</p>
+      )}
 
       <Steps labels={PASOS} current={paso} />
 
@@ -271,6 +338,7 @@ export function Captura() {
           <section className="card transcript" aria-busy={ocupado}>
             <div className="eyebrow">Transcripción</div>
             <p className="transcript-text">
+              {transcripcion.length === 0 && <span className="faint">Dicta o escribe lo que viste y Quorum arma el registro.</span>}
               {transcripcion.map((s, i) =>
                 typeof s === 'string' ? (
                   s
@@ -284,7 +352,7 @@ export function Captura() {
             </p>
             {error && <p className="note">{error}</p>}
             <form className="transcript-form" onSubmit={(e) => { e.preventDefault(); void enviarTexto(); }}>
-              <input className="input" placeholder="O escribe lo que viste…" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={ocupado} />
+              <input ref={campoTexto} className="input" placeholder="O escribe lo que viste…" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={ocupado} />
               <button type="submit" className="btn btn-ghost" disabled={ocupado}>
                 <IconSend /> Enviar
               </button>
@@ -297,6 +365,7 @@ export function Captura() {
               <IconCheck width={18} height={18} />
               <span>Guardada en este dispositivo y firmada por <strong>{red?.este.nombre ?? 'este dispositivo'}</strong>. Se comparte al sincronizar.</span>
               {guardada.cliente && <Link to={`/hospitales/${idCliente(guardada.cliente)}`} className="btn btn-link">Ver en Hospitales</Link>}
+              <button type="button" className="btn btn-link" onClick={nuevaVisita}>Nueva visita</button>
             </section>
           ) : (
             <>
@@ -364,7 +433,7 @@ export function Captura() {
               ))}
             </div>
           ))}
-          {equipos.length === 0 && <p className="faint">No se detectaron equipos en el dictado.</p>}
+          {equipos.length === 0 && <p className="faint">{extraccion ? 'No se detectaron equipos en el dictado.' : 'Los equipos aparecen aquí a medida que dictas.'}</p>}
         </section>
       </div>
     </>

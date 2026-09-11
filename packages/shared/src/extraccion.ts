@@ -3,12 +3,15 @@ import type { Estado, Modalidad } from './index.ts';
 /** Contrato de POST /api/extraer. */
 export type DatoExtraido<T> = { valor: T | null; estado: Estado };
 
+/** `frase` son las palabras del dictado que dieron la antigüedad, para subrayarlas. */
+export type AntiguedadExtraida = DatoExtraido<number> & { frase?: string };
+
 export type EquipoExtraido = {
   modalidad: Modalidad;
   cantidad: number;
   marca: DatoExtraido<string>;
   modelo: DatoExtraido<string>;
-  antiguedad: DatoExtraido<number>;
+  antiguedad: AntiguedadExtraida;
 };
 
 export type Extraccion = {
