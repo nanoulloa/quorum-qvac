@@ -1,7 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import os from 'node:os';
+import { createRequire } from 'node:module';
 import type { NuevaDecision, NuevaObservacion } from '@quorum/shared';
+import type { Sistema } from '@quorum/shared';
 import { extraer } from './captura/extraccion.ts';
+import { interpretarConsulta } from './consultas/consulta.ts';
 import { Almacen } from './datos/almacen.ts';
 import { sembrar } from './datos/semilla.ts';
 import { construirBase } from './datos/vista.ts';
@@ -70,6 +74,14 @@ app.post<{ Body: NuevaDecision }>('/api/decisiones', async (req, reply) => {
   return decision;
 });
 
+app.post<{ Body: { texto?: string } }>('/api/consulta', async (req, reply) => {
+  const texto = req.body?.texto?.trim();
+  if (!texto) return reply.code(400).send({ error: 'Falta "texto".' });
+  const base = construirBase(await almacen.entradas());
+  const ciudades = [...new Set(base.clientes.map((c) => c.ciudad).filter((c): c is string => Boolean(c)))];
+  return interpretarConsulta(texto, { clientes: base.clientes.map((c) => c.nombre), ciudades });
+});
+
 app.get('/api/base', async () => construirBase(await almacen.entradas()));
 
 app.get('/api/red', async () => red.estado());
@@ -79,6 +91,16 @@ app.post('/api/semilla', async () => {
   if (sembradas) red.anunciar();
   return { sembradas };
 });
+
+const qvacSdk = (createRequire(import.meta.url)('@qvac/sdk/package') as { version: string }).version;
+
+app.get('/api/sistema', async (): Promise<Sistema> => ({
+  cpu: os.cpus()[0]?.model ?? 'desconocido',
+  memoriaGB: Math.round(os.totalmem() / 1024 ** 3),
+  sistema: `${os.type()} ${os.release()}`,
+  node: process.version,
+  qvacSdk,
+}));
 
 app.get<{ Querystring: { limite?: string } }>('/api/perf', async (req) => leerRegistro(Number(req.query.limite ?? 100)));
 

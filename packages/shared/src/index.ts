@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 export * from './confianza.ts';
+export * from './consulta.ts';
 export * from './extraccion.ts';
+export * from './perf.ts';
 export * from './placa.ts';
 export * from './registro.ts';
 

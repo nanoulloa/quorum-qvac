@@ -1,88 +1,136 @@
-import { IconDownload } from '../components/icons';
+import type { RegistroInferencia, Sistema, Tarea } from '@quorum/shared';
+import { useEffect, useMemo, useState } from 'react';
 import { PageHeader } from '../components/ui';
 import './Rendimiento.css';
 
-// Valores de ejemplo: P0-03 los reemplaza con lo que registra perf.jsonl.
-const MODELOS = [
-  { tarea: 'Transcripción', modelo: 'whisper-small', cuant: 'Q8_0', carga: '1,2 s', ttft: '—', velocidad: '0,31× tiempo real' },
-  { tarea: 'Extracción', modelo: 'qwen3-1.7b', cuant: 'Q4_K_M', carga: '2,8 s', ttft: '410 ms', velocidad: '38 tok/s' },
-  { tarea: 'Lectura de placa', modelo: 'visionpsy-nano-460m', cuant: 'Q8_0', carga: '1,6 s', ttft: '690 ms', velocidad: '52 tok/s' },
-  { tarea: 'Duplicados', modelo: 'embeddinggemma-300m', cuant: 'Q8_0', carga: '0,9 s', ttft: '—', velocidad: '11 ms por texto' },
-  { tarea: 'Consultas', modelo: 'qwen3-4b', cuant: 'Q4_K_M', carga: '5,4 s', ttft: '820 ms', velocidad: '24 tok/s' },
-];
+const TAREA: Record<Tarea, string> = {
+  transcripcion: 'Transcripción',
+  extraccion: 'Extracción',
+  pregunta: 'Pregunta',
+  placa: 'Lectura de placa',
+  embeddings: 'Duplicados',
+  consulta: 'Consultas',
+};
 
-const REGISTRO = [
-  { hora: '09:47:07', tarea: 'Consultas', modelo: 'qwen3-4b', entrada: '612', salida: '48', ttft: '822 ms', tps: '24,1' },
-  { hora: '09:45:52', tarea: 'Lectura de placa', modelo: 'visionpsy-nano-460m', entrada: '1.184', salida: '71', ttft: '688 ms', tps: '51,7' },
-  { hora: '09:43:15', tarea: 'Extracción', modelo: 'qwen3-1.7b', entrada: '944', salida: '163', ttft: '405 ms', tps: '38,4' },
-  { hora: '09:43:10', tarea: 'Transcripción', modelo: 'whisper-small', entrada: '42 s de audio', salida: '96', ttft: '—', tps: '—' },
-  { hora: '09:31:40', tarea: 'Duplicados', modelo: 'embeddinggemma-300m', entrada: '214', salida: '—', ttft: '—', tps: '—' },
-  { hora: '09:12:03', tarea: 'Extracción', modelo: 'qwen3-1.7b', entrada: '871', salida: '140', ttft: '398 ms', tps: '38,9' },
-];
+const mediana = (xs: number[]) => {
+  if (!xs.length) return null;
+  const o = [...xs].sort((a, b) => a - b);
+  return o[Math.floor(o.length / 2)];
+};
+
+const ms = (v: number | null | undefined) => (v === null || v === undefined ? '—' : v >= 1000 ? `${(v / 1000).toFixed(1).replace('.', ',')} s` : `${Math.round(v)} ms`);
+const tps = (v: number | null | undefined) => (v === null || v === undefined ? '—' : `${v.toFixed(1).replace('.', ',')} tok/s`);
+const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export function Rendimiento() {
+  const [registro, setRegistro] = useState<RegistroInferencia[]>([]);
+  const [sistema, setSistema] = useState<Sistema | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    const cargar = async () => {
+      try {
+        const [r, s] = await Promise.all([fetch('/api/perf?limite=500').then((x) => x.json()), fetch('/api/sistema').then((x) => x.json())]);
+        if (!vivo) return;
+        setRegistro(r as RegistroInferencia[]);
+        setSistema(s as Sistema);
+        setError(false);
+      } catch {
+        if (vivo) setError(true);
+      }
+    };
+    void cargar();
+    const id = window.setInterval(() => void cargar(), 5000);
+    return () => {
+      vivo = false;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const modelos = useMemo(() => {
+    const grupos = new Map<string, RegistroInferencia[]>();
+    for (const r of registro.filter((x) => !x.error)) grupos.set(r.modelo, [...(grupos.get(r.modelo) ?? []), r]);
+    return [...grupos.entries()].map(([modelo, rs]) => ({
+      modelo,
+      tareas: [...new Set(rs.map((r) => TAREA[r.tarea] ?? r.tarea))].join(', '),
+      cuantizacion: rs[0].cuantizacion,
+      donde: rs[0].dondeCorre === 'par' ? 'Par' : 'Este dispositivo',
+      carga: Math.max(0, ...rs.map((r) => r.cargaMs ?? 0)) || null,
+      ttft: mediana(rs.map((r) => r.ttftMs).filter((v): v is number => v !== undefined)),
+      velocidad: mediana(rs.map((r) => r.tokensPorSegundo).filter((v): v is number => v !== undefined)),
+      duracion: mediana(rs.map((r) => r.duracionMs)),
+      llamadas: rs.length,
+    }));
+  }, [registro]);
+
+  const ttftGlobal = mediana(registro.map((r) => r.ttftMs).filter((v): v is number => v !== undefined));
+
   return (
     <>
       <PageHeader
         eyebrow="Sistema"
         title="Rendimiento"
-        subtitle="Cada inferencia queda registrada con sus tiempos y tokens."
-        actions={<button type="button" className="btn btn-ghost"><IconDownload /> Exportar perf.jsonl</button>}
+        subtitle="Cada inferencia queda registrada en perf.jsonl con sus tiempos y tokens."
+        actions={<a className="btn btn-ghost" href="/api/perf?limite=1000" target="_blank" rel="noreferrer">Ver perf.jsonl</a>}
       />
+
+      {error && <p className="note">El servidor local no responde. Inícialo con <span className="mono">npm run dev</span>.</p>}
 
       <section className="card summary">
         <div className="summary-item">
-          <span className="eyebrow">Inferencias enviadas a internet</span>
+          <span className="eyebrow">Inferencia en APIs remotas</span>
           <span className="summary-value">0</span>
+          <span className="faint">Todo corre con @qvac/sdk local</span>
         </div>
         <div className="summary-item">
-          <span className="eyebrow">Hardware declarado</span>
-          <span className="summary-text">MacBook Air M2 · 16 GB</span>
-          <span className="faint">macOS 15 · Node 22.17</span>
+          <span className="eyebrow">Hardware</span>
+          <span className="summary-text">{sistema ? `${sistema.cpu} · ${sistema.memoriaGB} GB` : '—'}</span>
+          <span className="faint">{sistema ? `Node ${sistema.node.replace('v', '')} · @qvac/sdk ${sistema.qvacSdk}` : ''}</span>
         </div>
         <div className="summary-item">
-          <span className="eyebrow">Modelos en este dispositivo</span>
-          <span className="summary-value">5</span>
+          <span className="eyebrow">Inferencias registradas</span>
+          <span className="summary-value">{registro.length}</span>
         </div>
         <div className="summary-item">
-          <span className="eyebrow">Memoria en uso</span>
-          <span className="summary-text">5,8 GB</span>
-          <span className="faint">de 16 GB</span>
+          <span className="eyebrow">Primer token (mediana)</span>
+          <span className="summary-text">{ms(ttftGlobal)}</span>
         </div>
       </section>
 
       <section className="card">
-        <div className="card-head"><h2 className="section-title">Modelos cargados</h2></div>
+        <div className="card-head"><h2 className="section-title">Modelos usados</h2></div>
         <div className="table-head rend-modelos">
-          <span>Tarea</span><span>Modelo</span><span>Cuantización</span><span>Dónde corre</span><span>Tiempo de carga</span><span>Primer token</span><span>Velocidad</span>
+          <span>Modelo</span><span>Tareas</span><span>Cuantización</span><span>Dónde corre</span><span>Carga</span><span>Primer token</span><span>Velocidad</span>
         </div>
-        {MODELOS.map((m) => (
-          <div key={m.tarea} className="table-row rend-modelos">
-            <span className="section-title">{m.tarea}</span>
+        {modelos.map((m) => (
+          <div key={m.modelo} className="table-row rend-modelos">
             <span className="mono">{m.modelo}</span>
-            <span className="mono faint">{m.cuant}</span>
-            <span><span className="pill pill-reportado">Este dispositivo</span></span>
-            <span className="mono">{m.carga}</span>
-            <span className="mono">{m.ttft}</span>
-            <span className="mono">{m.velocidad}</span>
+            <span>{m.tareas} <span className="faint">· {m.llamadas}</span></span>
+            <span className="mono faint">{m.cuantizacion}</span>
+            <span><span className="pill pill-reportado">{m.donde}</span></span>
+            <span className="mono">{ms(m.carga)}</span>
+            <span className="mono">{ms(m.ttft)}</span>
+            <span className="mono">{m.velocidad !== null ? tps(m.velocidad) : ms(m.duracion)}</span>
           </div>
         ))}
+        {modelos.length === 0 && <p className="faint lista-vacia">Todavía no hay inferencias. Dicta una visita o lee una placa.</p>}
       </section>
 
       <section className="card rend-registro">
-        <div className="card-head"><h2 className="section-title">Registro de inferencias</h2><span className="mono faint rend-archivo">perf.jsonl</span></div>
+        <div className="card-head"><h2 className="section-title">Registro de inferencias</h2><span className="mono faint rend-archivo">perf.jsonl · últimas {Math.min(20, registro.length)}</span></div>
         <div className="table-head rend-log">
-          <span>Hora</span><span>Tarea</span><span>Modelo</span><span>Tokens de entrada</span><span>Tokens de salida</span><span>Primer token</span><span>tok/s</span>
+          <span>Hora</span><span>Tarea</span><span>Modelo</span><span>Tokens de entrada</span><span>Tokens de salida</span><span>Primer token</span><span>Duración</span>
         </div>
-        {REGISTRO.map((r) => (
-          <div key={r.hora} className="table-row rend-log mono">
-            <span className="faint">{r.hora}</span>
-            <span className="rend-tarea">{r.tarea}</span>
+        {registro.slice(0, 20).map((r, i) => (
+          <div key={`${r.fecha}-${i}`} className="table-row rend-log mono">
+            <span className="faint">{hora(r.fecha)}</span>
+            <span className="rend-tarea">{TAREA[r.tarea] ?? r.tarea}{r.error ? ' · error' : ''}</span>
             <span>{r.modelo}</span>
-            <span>{r.entrada}</span>
-            <span>{r.salida}</span>
-            <span>{r.ttft}</span>
-            <span>{r.tps}</span>
+            <span>{r.tokensEntrada ?? '—'}</span>
+            <span>{r.tokensSalida ?? '—'}</span>
+            <span>{ms(r.ttftMs)}</span>
+            <span>{ms(r.duracionMs)}</span>
           </div>
         ))}
       </section>

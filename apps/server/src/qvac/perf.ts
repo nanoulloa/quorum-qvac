@@ -1,25 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { RegistroInferencia } from '@quorum/shared';
 
-export type Tarea = 'transcripcion' | 'extraccion' | 'pregunta' | 'placa' | 'embeddings' | 'consulta';
-
-/** Una línea de perf.jsonl por inferencia (requisito del track QVAC Psy). */
-export type RegistroInferencia = {
-  fecha: string;
-  tarea: Tarea;
-  modelo: string;
-  cuantizacion: string;
-  dondeCorre: 'este-dispositivo' | 'par';
-  cargaMs?: number;
-  duracionMs: number;
-  prompt?: string;
-  tokensEntrada?: number;
-  tokensSalida?: number;
-  ttftMs?: number;
-  tokensPorSegundo?: number;
-  backend?: 'gpu' | 'cpu';
-  error?: string;
-};
+export type { RegistroInferencia, Tarea } from '@quorum/shared';
 
 export const RUTA_PERF = process.env.QUORUM_PERF_LOG ?? path.resolve(process.cwd(), 'perf.jsonl');
 

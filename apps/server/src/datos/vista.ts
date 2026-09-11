@@ -10,6 +10,7 @@ import {
   type Evidencia,
   type Testigo,
 } from '@quorum/shared';
+import { paisCanonico } from '../captura/paises.ts';
 import { normalizar } from '../captura/texto.ts';
 
 const DIA_MS = 86_400_000;
@@ -58,7 +59,7 @@ export function construirBase(entradas: EntradaLog[], ahora = Date.now()): BaseI
     const clienteId = idCliente(o.cliente.valor);
     const cliente = clientes.get(clienteId) ?? { id: clienteId, nombre: o.cliente.valor, ciudad: null, pais: null };
     cliente.ciudad ??= o.ciudad.valor;
-    cliente.pais ??= o.pais.valor;
+    cliente.pais ??= paisCanonico(o.pais.valor);
     clientes.set(clienteId, cliente);
 
     o.equipos.forEach((e, i) => {

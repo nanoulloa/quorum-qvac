@@ -1,0 +1,22 @@
+export type Tarea = 'transcripcion' | 'extraccion' | 'pregunta' | 'placa' | 'embeddings' | 'consulta';
+
+/** Una línea de perf.jsonl por inferencia (requisito del track QVAC Psy). Contrato de GET /api/perf. */
+export type RegistroInferencia = {
+  fecha: string;
+  tarea: Tarea;
+  modelo: string;
+  cuantizacion: string;
+  dondeCorre: 'este-dispositivo' | 'par';
+  cargaMs?: number;
+  duracionMs: number;
+  prompt?: string;
+  tokensEntrada?: number;
+  tokensSalida?: number;
+  ttftMs?: number;
+  tokensPorSegundo?: number;
+  backend?: 'gpu' | 'cpu';
+  error?: string;
+};
+
+/** Contrato de GET /api/sistema. */
+export type Sistema = { cpu: string; memoriaGB: number; sistema: string; node: string; qvacSdk: string };

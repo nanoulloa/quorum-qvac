@@ -3,6 +3,7 @@ import { completarJson } from '../qvac/inferir.ts';
 import type { ClaveModelo } from '../qvac/modelos.ts';
 import { CATALOGO, MARCA_DE_MODELO } from './catalogo.ts';
 import { clienteConocido, sinCiudad } from './clientes.ts';
+import { paisCanonico } from './paises.ts';
 import { mencionaParecido, normalizar, numero, oraciones } from './texto.ts';
 
 const nulo = (tipo: string) => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
@@ -164,16 +165,6 @@ function antiguedad(e: EquipoCrudo): DatoExtraido<number> {
 }
 
 const MODELO_EXTRACCION = (process.env.QUORUM_MODELO_EXTRACCION as ClaveModelo | undefined) ?? 'extraccion';
-
-const PAISES = ['Panamá', 'Colombia', 'Costa Rica', 'México', 'Perú', 'Ecuador', 'Brasil', 'Chile', 'Argentina', 'Guatemala', 'El Salvador', 'Honduras', 'Nicaragua', 'República Dominicana'];
-const ALIAS_PAIS: Record<string, string> = { brazil: 'Brasil', mexico: 'México', peru: 'Perú', panama: 'Panamá' };
-
-/** "Panama" → "Panamá". Los países del dictado se guardan con su nombre canónico. */
-function paisCanonico(pais: string | null): string | null {
-  if (!pais) return null;
-  const n = normalizar(pais);
-  return PAISES.find((p) => normalizar(p) === n) ?? ALIAS_PAIS[n] ?? pais;
-}
 
 /** Convierte un dictado en datos estructurados con su estado. Tolera datos incompletos. */
 export async function extraer(texto: string, anioActual = new Date().getFullYear()): Promise<Extraccion> {

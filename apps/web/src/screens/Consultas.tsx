@@ -1,54 +1,74 @@
-import type { Modalidad } from '@quorum/shared';
+import type { FiltrosConsulta } from '@quorum/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api';
 import { IconClose, IconDownload, IconMic, IconSearch } from '../components/icons';
 import { ConfidenceBar, PageHeader, StatusPill } from '../components/ui';
 import { useBase } from '../datos/base';
 import { esRenovacion, estadoGeneral, sinVerificar } from '../datos/reglas';
 import './Consultas.css';
 
-type Filtros = {
-  pais?: string;
-  modalidad?: Modalidad;
-  antiguedadMin?: number;
-  soloRenovacion?: boolean;
-  soloSinVerificar?: boolean;
+const SIN_FILTROS: FiltrosConsulta = {
+  pais: null,
+  ciudad: null,
+  cliente: null,
+  modalidad: null,
+  marca: null,
+  antiguedadMin: null,
+  antiguedadMax: null,
+  confianzaMin: null,
+  soloRenovacion: false,
+  soloSinVerificar: false,
 };
 
-type Consulta = { texto: string; filtros: Filtros };
-
-// Mientras P1-08 no está conectado, cada consulta trae los filtros que devolvería el modelo.
-const RECIENTES: Consulta[] = [
-  { texto: 'Clientes en Brasil con resonadores de más de siete años', filtros: { pais: 'Brasil', modalidad: 'Resonancia magnética', antiguedadMin: 7 } },
-  { texto: 'Equipos en Panamá sin verificar en 6 meses', filtros: { pais: 'Panamá', soloSinVerificar: true } },
-  { texto: 'Tomógrafos de más de 10 años', filtros: { modalidad: 'Tomografía', antiguedadMin: 10 } },
-  { texto: 'Oportunidades de renovación en Colombia', filtros: { pais: 'Colombia', soloRenovacion: true } },
+const EJEMPLOS = [
+  'Clientes en Brasil con resonadores de más de siete años',
+  'Equipos en Panamá sin verificar en 6 meses',
+  'Tomógrafos de más de 10 años',
+  'Oportunidades de renovación en Colombia',
 ];
 
-const describir: Record<keyof Filtros, (f: Filtros) => [string, string]> = {
+const describir: Record<keyof FiltrosConsulta, (f: FiltrosConsulta) => [string, string]> = {
   pais: (f) => ['País', f.pais!],
+  ciudad: (f) => ['Ciudad', f.ciudad!],
+  cliente: (f) => ['Cliente', f.cliente!],
   modalidad: (f) => ['Modalidad', f.modalidad!],
-  antiguedadMin: (f) => ['Antigüedad', `más de ${f.antiguedadMin} años`],
+  marca: (f) => ['Marca', f.marca!],
+  antiguedadMin: (f) => ['Antigüedad', `desde ${f.antiguedadMin} años`],
+  antiguedadMax: (f) => ['Antigüedad', `hasta ${f.antiguedadMax} años`],
+  confianzaMin: (f) => ['Confianza', `desde ${f.confianzaMin}`],
   soloRenovacion: () => ['Solo', 'oportunidades de renovación'],
   soloSinVerificar: () => ['Solo', 'sin verificar +180 días'],
 };
 
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim();
+const segundos = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
+
 export function Consultas() {
   const navigate = useNavigate();
-  const { clientes, equipos } = useBase();
-  const [texto, setTexto] = useState(RECIENTES[0].texto);
-  const [filtros, setFiltros] = useState<Filtros>(RECIENTES[0].filtros);
+  const { clientes, equipos, origen } = useBase();
+  const [texto, setTexto] = useState(EJEMPLOS[0]);
+  const [filtros, setFiltros] = useState<FiltrosConsulta>(SIN_FILTROS);
+  const [meta, setMeta] = useState('Escribe o elige una pregunta y toca Consultar');
+  const [consultando, setConsultando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const clientePorId = useMemo(() => new Map(clientes.map((c) => [c.id, c])), [clientes]);
 
   const resultados = useMemo(
     () =>
       equipos.filter((e) => {
         const c = clientePorId.get(e.clienteId);
+        if (!c) return false;
+        const anios = e.anios ?? -1;
         return (
-          c &&
-          (!filtros.pais || c.pais === filtros.pais) &&
+          (!filtros.pais || norm(c.pais) === norm(filtros.pais)) &&
+          (!filtros.ciudad || norm(c.ciudad) === norm(filtros.ciudad)) &&
+          (!filtros.cliente || norm(c.nombre).includes(norm(filtros.cliente))) &&
           (!filtros.modalidad || e.modalidad === filtros.modalidad) &&
-          (filtros.antiguedadMin === undefined || (e.anios ?? 0) > filtros.antiguedadMin) &&
+          (!filtros.marca || (e.marca.valor !== null && norm(e.marca.valor) === norm(filtros.marca))) &&
+          (filtros.antiguedadMin === null || anios >= filtros.antiguedadMin) &&
+          (filtros.antiguedadMax === null || (anios >= 0 && anios <= filtros.antiguedadMax)) &&
+          (filtros.confianzaMin === null || e.confianza.total >= filtros.confianzaMin) &&
           (!filtros.soloRenovacion || esRenovacion(e)) &&
           (!filtros.soloSinVerificar || sinVerificar(e))
         );
@@ -56,14 +76,28 @@ export function Consultas() {
     [equipos, clientePorId, filtros],
   );
   const nClientes = new Set(resultados.map((e) => e.clienteId)).size;
-  const activos = (Object.keys(filtros) as (keyof Filtros)[]).filter((k) => filtros[k] !== undefined && filtros[k] !== false);
+  const activos = (Object.keys(filtros) as (keyof FiltrosConsulta)[]).filter((k) => filtros[k] !== null && filtros[k] !== false);
 
-  const quitar = (k: keyof Filtros) => setFiltros((f) => ({ ...f, [k]: undefined }));
-  const usar = (c: Consulta) => {
-    setTexto(c.texto);
-    setFiltros(c.filtros);
+  const quitar = (k: keyof FiltrosConsulta) => setFiltros((f) => ({ ...f, [k]: typeof f[k] === 'boolean' ? false : null }));
+
+  const consultar = async (pregunta: string) => {
+    const limpia = pregunta.trim();
+    if (!limpia) return;
+    setTexto(limpia);
+    setError(null);
+    setConsultando(true);
+    setMeta('Interpretando en este dispositivo…');
+    try {
+      const r = await api.consulta(limpia);
+      setFiltros(r.filtros);
+      setMeta(`${r.modelo} · en este dispositivo · ${segundos(r.duracionMs)}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo interpretar la pregunta.');
+      setMeta('Sin interpretar');
+    } finally {
+      setConsultando(false);
+    }
   };
-  const consultar = () => usar(RECIENTES.find((r) => r.texto.toLowerCase() === texto.trim().toLowerCase()) ?? { texto, filtros });
 
   return (
     <>
@@ -71,12 +105,12 @@ export function Consultas() {
 
       <div className="split consultas">
         <div className="consultas-col">
-          <section className="card consulta-box">
-            <form className="consulta-form" onSubmit={(e) => { e.preventDefault(); consultar(); }}>
+          <section className="card consulta-box" aria-busy={consultando}>
+            <form className="consulta-form" onSubmit={(e) => { e.preventDefault(); void consultar(texto); }}>
               <IconSearch width={20} height={20} className="faint" />
-              <input className="consulta-input" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Consulta" placeholder="Ej.: tomógrafos de más de 10 años en Colombia" />
-              <button type="button" className="btn btn-ghost consulta-mic" aria-label="Consultar por voz"><IconMic /></button>
-              <button type="submit" className="btn btn-primary">Consultar</button>
+              <input className="consulta-input" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Consulta" placeholder="Ej.: tomógrafos de más de 10 años en Colombia" disabled={consultando} />
+              <button type="button" className="btn btn-ghost consulta-mic" aria-label="Consultar por voz" disabled={consultando}><IconMic /></button>
+              <button type="submit" className="btn btn-primary" disabled={consultando || origen === 'ejemplo'}>{consultando ? 'Consultando…' : 'Consultar'}</button>
             </form>
             <div className="consulta-interpretacion">
               <span className="eyebrow">Interpretado como</span>
@@ -90,7 +124,9 @@ export function Consultas() {
                 );
               })}
               {activos.length === 0 && <span className="faint">Sin filtros: se muestra toda la base.</span>}
+              <span className="mono faint consulta-meta">{meta}</span>
             </div>
+            {error && <p className="note">{error}</p>}
           </section>
 
           <section className="card resultados">
@@ -122,10 +158,10 @@ export function Consultas() {
 
         <aside className="consultas-col">
           <section className="card card-body">
-            <div className="eyebrow">Consultas recientes</div>
+            <div className="eyebrow">Preguntas de ejemplo</div>
             <div className="recientes">
-              {RECIENTES.map((r) => (
-                <button key={r.texto} type="button" className={`reciente${r.texto === texto ? ' on' : ''}`} onClick={() => usar(r)}>{r.texto}</button>
+              {EJEMPLOS.map((p) => (
+                <button key={p} type="button" className={`reciente${p === texto ? ' on' : ''}`} onClick={() => void consultar(p)} disabled={consultando || origen === 'ejemplo'}>{p}</button>
               ))}
             </div>
           </section>

@@ -11,6 +11,7 @@
     "eval:voz": "tsx scripts/eval-voz.ts",
     "placas:generar": "python3 scripts/generar-placas.py",
     "eval:placas": "tsx scripts/eval-placas.ts",
+    "eval:consultas": "tsx scripts/eval-consultas.ts",
     "prueba:p2p": "tsx scripts/prueba-p2p.ts",
     "semilla": "curl -s -X POST http://127.0.0.1:${QUORUM_API_PORT:-4000}/api/semilla",
     "typecheck": "tsc --noEmit"
