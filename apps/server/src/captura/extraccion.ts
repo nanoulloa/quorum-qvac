@@ -77,7 +77,8 @@ type EquipoCrudo = {
 type Crudo = { cliente: string | null; ciudad: string | null; pais: string | null; equipos: EquipoCrudo[] };
 
 const VACIOS = /^(unknown|desconocid[oa]|n\/?a|null|none|ninguno|sin dato|no se sabe|-+)$/i;
-const DUDA = /\b(parece|parecen|unos|unas|como|más o menos|aprox\w*|calculo|quiz[aá]s?|tal vez|creo|alrededor|supongo|estimo)\b/i;
+/** Palabras que vuelven Estimado un número: quien habla no está seguro. */
+export const DUDA = /\b(parece|parecen|unos|unas|como|más o menos|aprox\w*|calculo|quiz[aá]s?|tal vez|creo|alrededor|supongo|estimo)\b/i;
 
 /** Cómo se nombra cada modalidad en un dictado, con la palabra anterior para leer la cantidad. */
 const MENCIONES: [Modalidad, RegExp][] = [
