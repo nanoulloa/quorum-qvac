@@ -93,10 +93,19 @@ export class Red extends EventEmitter {
       this.evento('Sin equipo: crea uno o únete con un código');
       return;
     }
-    this.swarm = new Hyperswarm();
-    this.swarm.on('connection', (conexion: any) => this.alConectar(conexion));
-    this.swarm.join(crypto.hash(Buffer.from(`quorum:${this.secreto}`)), { server: true, client: true });
+    const swarm = new Hyperswarm();
+    this.swarm = swarm;
+    swarm.on('connection', (conexion: any) => this.alConectar(conexion));
+    const descubrimiento = swarm.join(crypto.hash(Buffer.from(`quorum:${this.secreto}`)), { server: true, client: true });
     this.evento('Buscando dispositivos del equipo');
+    // Hyperswarm solo vuelve a anunciarse y a buscar cada 10 minutos. Si dos dispositivos arrancan a la vez
+    // o uno vuelve de estar sin red, a veces no se encuentran en ese intento; mientras no haya nadie conectado,
+    // se reintenta cada 10 s. Se detiene solo al cambiar de equipo o al cerrar.
+    const reintento = setInterval(() => {
+      if (this.swarm !== swarm || swarm.destroyed) return clearInterval(reintento);
+      if (swarm.connections.size === 0) descubrimiento.refresh().catch(() => {});
+    }, 10_000);
+    reintento.unref?.();
   }
 
   /** Vuelve a enviar la lista de logs conocidos a todas las conexiones abiertas. */

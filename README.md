@@ -17,29 +17,57 @@ No hay una versión en la nube a propósito: la IA corre en la laptop de cada in
 
 ## Correr en local
 
-Requisitos: Node ≥ 22.17, npm ≥ 10.9 y ~3 GB libres para los modelos (se descargan la primera vez).
+**Requisitos**
+- **Sistema:** probado en macOS con Apple M4 y 16 GB.
+- **Node:** 22.17 o más, con npm 10.9 o más. Con nvm, `nvm use` toma la versión de `.nvmrc`.
+- **Espacio:** unos 3 GB libres para los modelos. Se descargan en el primer arranque, que necesita internet. Después todo funciona sin conexión.
+- **Navegador:** Chrome, Brave o Edge. Pide permiso de micrófono para dictar y de cámara para la foto de placa. Si no hay cámara, usa **Usar placa de ejemplo**.
+
+> Todos los comandos se corren **dentro de la carpeta `quorum-qvac`**. Si la terminal responde `Could not read package.json`, falta entrar con `cd quorum-qvac`.
+
+**1. Clonar e instalar** (una sola vez):
 
 ```bash
+git clone https://github.com/nanoulloa/quorum-qvac.git
+cd quorum-qvac
 nvm use
 npm install
+```
+
+**2. Arrancar.** En la terminal 1, dentro de `quorum-qvac`, y déjala abierta:
+
+```bash
 npm run dev
 ```
 
-- Web: http://localhost:5173
-- API local: http://127.0.0.1:4000/api/health
+Abre http://localhost:5173. La primera vez aparece **Bienvenido a Quorum**: escribe tu nombre y elige **Crear un equipo**. La API local responde en http://127.0.0.1:4000/api/health.
 
-Con el servidor corriendo, `npm run semilla -w @quorum/server` carga visitas ficticias de tres ingenieros para explorar la base.
+**3. Cargar datos de ejemplo.** En la terminal 2, dentro de `quorum-qvac`, con la terminal 1 corriendo:
 
-### Demo con dos laptops (sincronización P2P)
+```bash
+npm run semilla -w @quorum/server
+```
 
-1. **Laptop A:** `npm run dev` y abre la web.
-   - Escribe tu nombre, elige **Crear un equipo** y copia el código (`QRM-XXXX-XXXX-XXXX`).
-   - Para tener datos que explorar: `npm run semilla -w @quorum/server`.
-2. **Laptop B:** `npm run dev`, escribe tu nombre, elige **Unirme con un código** y pega el código de A. Arranca vacía.
-3. Las dos necesitan red para encontrarse. En segundos B recibe la base de A, y lo que cualquiera capture o decida en "Red P2P" aparece en la otra.
-4. Para sumar otro dispositivo después, abre **Red P2P → Agregar dispositivo**: ahí está el código.
+Carga 18 visitas ficticias de tres ingenieros para explorar Hospitales, Base instalada y Consultas.
 
-Sin una segunda laptop, `npm run dev:b` levanta un segundo dispositivo en la misma máquina. Tiene su propio servidor en el puerto 4001, su almacén en `apps/server/.quorum-b` y su propia clave, y su web queda en http://localhost:5174. Se encuentra con el primero por Hyperswarm, igual que dos laptops.
+### Probar la sincronización P2P
+
+**Con dos laptops**
+1. **Laptop A:** hace los pasos 1 a 3. Después abre **Red P2P → Agregar dispositivo** y copia el código del equipo (`QRM-XXXX-XXXX-XXXX`).
+2. **Laptop B:** hace los pasos 1 y 2. En la bienvenida elige **Unirme con un código** y pega el código de A. B arranca vacía.
+3. Con las dos conectadas a internet, en unos segundos **Red P2P** dice **Conectado con 1 dispositivo** y B recibe la base de A. Lo que cualquiera capture o decida aparece en la otra.
+   - No hace falta estar en la misma red.
+   - Si una laptop estuvo sin conexión, las dos se vuelven a buscar solas cada 10 s.
+
+**Con una sola laptop**
+1. Con la terminal 1 corriendo, abre una **terminal nueva**, entra a `quorum-qvac` y corre:
+
+```bash
+npm run dev:b
+```
+
+2. Abre http://localhost:5174 en otra ventana. Es un segundo dispositivo con su propio servidor (puerto 4001), su almacén (`apps/server/.quorum-b`) y su propia clave.
+3. En la bienvenida elige **Unirme con un código** y pega el código de A. Se encuentran por Hyperswarm, igual que dos laptops.
 
 El nombre y el código se guardan solo en ese dispositivo (`apps/server/.quorum/perfil.json`). Sin código, el dispositivo no busca a nadie.
 
@@ -137,6 +165,10 @@ npm run prueba:p2p -w @quorum/server
 - Los dictados y placas de las evaluaciones son sintéticos (voz de macOS y placas generadas). Falta medir con voz real y placas fotografiadas.
 - Quorum no es un dispositivo médico ni se usa para decisiones clínicas; registra inventario de equipos.
 - Si la foto es mala o el dictado es ambiguo, el dato queda como Estimado o Desconocido hasta que alguien lo confirme.
+
+## Equipo
+
+Tanebi: Nano ([@nanoulloa](https://github.com/nanoulloa)), Steven ([@StevenMend](https://github.com/StevenMend)) y JP.
 
 ## Licencia
 
