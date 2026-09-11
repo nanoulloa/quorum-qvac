@@ -119,6 +119,7 @@ npm run prueba:p2p -w @quorum/server
 - No se partió de código preexistente.
 - IA: `@qvac/sdk` y modelos del catálogo QVAC.
 - P2P: `corestore`, `hypercore`, `hyperswarm`, `protomux`, `compact-encoding` y `hypercore-crypto` (Holepunch).
+- Mapa de Base instalada: `world-atlas` (Natural Earth 110m), `topojson-client` y `d3-geo`. El mapa va dentro del bundle, sin tiles de internet.
 - App: React, React Router, Vite, Fastify, zod y Fontsource.
 - APIs remotas: ninguna. La única conexión externa es la descarga inicial de modelos desde el registro de QVAC y el descubrimiento de pares de Hyperswarm.
 

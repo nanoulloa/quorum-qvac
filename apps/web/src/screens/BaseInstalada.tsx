@@ -2,6 +2,7 @@ import type { Modalidad } from '@quorum/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconClock, IconDownload } from '../components/icons';
+import { MapaPaises } from '../components/MapaPaises';
 import { ConfidenceBar, PageHeader } from '../components/ui';
 import { useBase } from '../datos/base';
 import { exportarCsv } from '../datos/csv';
@@ -48,12 +49,22 @@ export function BaseInstalada() {
     });
   }, [equipos, clientePorId, pais, modalidad, confianzaMin]);
 
-  const porPais = paises
-    .slice(1)
-    .map((p) => ({ pais: p, total: filtrados.filter((e) => clientePorId.get(e.clienteId)?.pais === p).length }))
-    .filter((p) => p.total > 0)
+  // Mapa y barras cuentan con los demás filtros pero sin el de país: así se ve a qué país se puede cambiar.
+  const conteoPais = useMemo(() => {
+    const min = CONFIANZAS.find((c) => c.label === confianzaMin)?.min ?? 0;
+    const conteo: Record<string, number> = {};
+    for (const e of equipos) {
+      const c = clientePorId.get(e.clienteId);
+      if (!c || c.pais === '—' || (modalidad !== 'Todas' && e.modalidad !== modalidad) || e.confianza.total < min) continue;
+      conteo[c.pais] = (conteo[c.pais] ?? 0) + 1;
+    }
+    return conteo;
+  }, [equipos, clientePorId, modalidad, confianzaMin]);
+  const porPais = Object.entries(conteoPais)
+    .map(([p, total]) => ({ pais: p, total }))
     .sort((a, b) => b.total - a.total);
   const maximo = Math.max(1, ...porPais.map((p) => p.total));
+  const elegirPais = (p: string) => setPais((actual) => (actual === p ? 'Todos' : p));
 
   const filas = clientes
     .map((c) => {
@@ -97,18 +108,31 @@ export function BaseInstalada() {
       <div className="split base">
         <div className="base-col">
           <section className="card card-body">
-            <h2 className="section-title">Equipos por país</h2>
-            <div className="barras">
-              {porPais.map((p) => (
-                <div key={p.pais} className="barra" title={`${p.pais}: ${p.total} equipos`}>
-                  <span className="barra-label">{p.pais}</span>
-                  <div className="barra-track">
-                    <div className="barra-fill" style={{ width: `${(p.total / maximo) * 100}%` }} />
-                    <span className="mono barra-valor">{p.total}</span>
-                  </div>
-                </div>
-              ))}
-              {porPais.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Todavía no hay equipos. Dicta una visita para empezar.' : 'Sin equipos con estos filtros.'}</p>}
+            <div className="pais-head">
+              <h2 className="section-title">Equipos por país</h2>
+              {porPais.length > 0 && <span className="faint">Toca un país o su barra para filtrar</span>}
+            </div>
+            <div className="pais-cuerpo">
+              <MapaPaises conteos={conteoPais} seleccionado={pais} alElegir={elegirPais} />
+              <div className={`barras${pais !== 'Todos' ? ' con-eleccion' : ''}`}>
+                {porPais.map((p) => (
+                  <button
+                    key={p.pais}
+                    type="button"
+                    className={`barra${p.pais === pais ? ' elegida' : ''}`}
+                    onClick={() => elegirPais(p.pais)}
+                    aria-pressed={p.pais === pais}
+                    title={`${p.pais}: ${p.total} ${p.total === 1 ? 'equipo' : 'equipos'}`}
+                  >
+                    <span className="barra-label">{p.pais}</span>
+                    <span className="barra-track">
+                      <span className="barra-fill" style={{ width: `${(p.total / maximo) * 100}%` }} />
+                      <span className="mono barra-valor">{p.total}</span>
+                    </span>
+                  </button>
+                ))}
+                {porPais.length === 0 && <p className="faint lista-vacia">{sinDatos ? 'Todavía no hay equipos. Dicta una visita para empezar.' : 'Sin equipos con estos filtros.'}</p>}
+              </div>
             </div>
           </section>
 

@@ -14,13 +14,18 @@
     "@fontsource/geist-mono": "^5.3.0",
     "@fontsource/instrument-serif": "^5.3.0",
     "@quorum/shared": "*",
+    "d3-geo": "^3.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.0"
+    "react-router-dom": "^7.1.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^5.6.3",
     "vite": "^8.3.0"
