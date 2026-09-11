@@ -1,0 +1,7 @@
+.summary-text { font-size: 20px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; }
+.summary-item .faint { font-size: 12px; }
+.rend-modelos { grid-template-columns: 1fr 1.4fr 0.9fr 1fr 0.9fr 0.8fr 1fr; }
+.rend-registro { flex: 1; min-height: 0; overflow: auto; }
+.rend-archivo { font-size: 12px; }
+.rend-log { grid-template-columns: 0.7fr 1fr 1.4fr 1fr 0.9fr 0.8fr 0.6fr; font-size: 12px; }
+.rend-tarea { font-family: var(--font-sans); font-size: 13px; }

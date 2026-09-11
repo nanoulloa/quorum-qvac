@@ -1,0 +1,22 @@
+{
+  "name": "quorum-qvac",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,server -c blue,gray \"npm run dev -w @quorum/web\" \"npm run dev -w @quorum/server\"",
+    "dev:web": "npm run dev -w @quorum/web",
+    "dev:server": "npm run dev -w @quorum/server",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=22.17"
+  }
+}

@@ -1,0 +1,28 @@
+.placa { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.placa-foto { display: flex; flex-direction: column; gap: 14px; padding: 16px; min-height: 0; }
+.placa-visor { position: relative; flex: 1; min-height: 420px; border-radius: 14px; background: var(--rec-bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.visor-corner { position: absolute; width: 28px; height: 28px; border: 2px solid rgba(255, 255, 255, 0.85); }
+.visor-corner.tl { left: 22px; top: 22px; border-right: 0; border-bottom: 0; }
+.visor-corner.tr { right: 22px; top: 22px; border-left: 0; border-bottom: 0; }
+.visor-corner.bl { left: 22px; bottom: 22px; border-right: 0; border-top: 0; }
+.visor-corner.br { right: 22px; bottom: 22px; border-left: 0; border-top: 0; }
+/* La placa es un objeto físico: sus colores no cambian con el tema. */
+.placa-metal { position: relative; width: 380px; padding: 26px 30px; display: flex; flex-direction: column; gap: 12px; border-radius: 4px; background: #d7dade; border: 1px solid #adb3b9; transform: rotate(-2deg); font-family: var(--font-mono); color: #2c3136; }
+.tornillo { position: absolute; width: 8px; height: 8px; border-radius: 4px; background: #9fa5ab; }
+.tornillo.a { left: 10px; top: 10px; } .tornillo.b { right: 10px; top: 10px; }
+.tornillo.c { left: 10px; bottom: 10px; } .tornillo.d { right: 10px; bottom: 10px; }
+.linea { width: fit-content; font-size: 13px; }
+.linea.grande { font-size: 26px; font-weight: 500; letter-spacing: 0.12em; }
+.linea.media { font-size: 17px; }
+.linea.leida { outline: 2px solid #102a4c; outline-offset: 3px; border-radius: 2px; }
+.linea.dudosa { outline: 2px dashed #102a4c; outline-offset: 3px; border-radius: 2px; opacity: 0.6; }
+.placa-foto-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
+.placa-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.placa-leidos { display: flex; flex-direction: column; margin-top: 14px; }
+.placa-leido { display: grid; grid-template-columns: 130px minmax(0, 1fr) 150px 96px; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hair); }
+.placa-leido .pill { justify-self: end; }
+.placa-valor { font-size: 15px; font-weight: 500; }
+.placa-cambios { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 16px; }
+.placa-cambio { display: grid; grid-template-columns: 130px minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 14px; }
+.placa-antes, .placa-despues { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.placa-despues strong { font-weight: 600; }

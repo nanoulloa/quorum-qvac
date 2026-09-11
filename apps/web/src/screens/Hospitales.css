@@ -1,0 +1,25 @@
+.hospitales { flex: 1; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 32px; min-height: 0; }
+.hospitales-lista { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; overflow: auto; }
+.hospitales-lista .eyebrow { padding: 0 12px 10px; }
+.cliente-item { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; font-size: 13px; transition: background-color 0.12s; }
+.cliente-item:hover { background: var(--subtle); }
+.cliente-item.active { background: var(--navy-tint); }
+.cliente-item.active .cliente-nombre { color: var(--navy); }
+.cliente-nombre { font-size: 14px; font-weight: 500; }
+.hospitales-detalle { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.hospital-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+.hospital-tabla { overflow: auto; }
+.hospital-cols { grid-template-columns: minmax(0, 1.7fr) 0.8fr 1fr 1.1fr 0.8fr 0.9fr; }
+.equipo-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.marca-renovacion { font-size: 12px; color: var(--navy); font-weight: 500; }
+.dato-viejo { color: var(--ink); font-weight: 500; text-decoration: underline dotted var(--ink3); text-underline-offset: 3px; }
+.desglose { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.desglose-total { display: flex; align-items: baseline; gap: 8px; }
+.desglose-total .serif { font-size: 56px; line-height: 1; }
+.factor { display: flex; flex-direction: column; gap: 6px; }
+.factor-top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.desglose-testigos-title { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--hair); }
+.testigo { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.testigo-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.testigo-info .mono { font-size: 11px; }
+.testigo-via { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; }

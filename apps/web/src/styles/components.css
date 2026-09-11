@@ -1,0 +1,49 @@
+/* Encabezado de página */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.page-subtitle { font-size: 15px; color: var(--ink2); }
+.page-header-side { display: flex; align-items: center; gap: 22px; flex: none; }
+.connection { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--ink2); }
+.connection-item { display: inline-flex; align-items: center; gap: 7px; }
+
+/* Confianza */
+.confidence { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.confidence-num { width: 24px; font-size: 13px; }
+.confidence-track { flex: 1; min-width: 48px; }
+.confidence-level { font-size: 12px; width: 40px; }
+
+/* Testigos */
+.avatars { display: flex; padding-left: 6px; }
+.avatar-sm { width: 26px; height: 26px; border-radius: 13px; font-size: 10px; margin-left: -6px; box-shadow: 0 0 0 2px var(--surface); }
+
+/* Tarjeta con título */
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px 0; }
+.card-body { padding: 20px 24px 24px; }
+.section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+
+/* Grilla de dos columnas con panel lateral */
+.split { flex: 1; display: grid; gap: 24px; min-height: 0; }
+
+/* Resumen numérico */
+.summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.summary-item { padding: 18px 24px; display: flex; flex-direction: column; gap: 4px; }
+.summary-item + .summary-item { border-left: 1px solid var(--hair); }
+.summary-value { font-family: var(--font-serif); font-size: 38px; line-height: 1; }
+
+/* Nota discreta */
+.note { padding: 14px 16px; border-radius: 12px; background: var(--subtle); font-size: 13px; color: var(--ink2); line-height: 1.55; }
+
+/* Tarjeta de pregunta y bloque de grabación (fondos fijos por tema) */
+.question { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; border-radius: 20px; background: var(--q-bg); color: var(--q-fg); }
+.question-kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.72; }
+.question-text { font-family: var(--font-serif); font-size: 30px; line-height: 1.1; }
+.answer { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38); color: var(--q-fg); font-size: 14px; font-weight: 500; transition: background-color 0.12s; }
+.answer:hover { background: rgba(255, 255, 255, 0.1); }
+.answer-icon { width: 40px; padding: 0; justify-content: center; background: var(--q-fg); color: var(--q-bg); box-shadow: none; }
+.answer-icon:hover { background: var(--q-fg); opacity: 0.9; }
+.recorder { display: flex; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 20px; background: var(--rec-bg); color: var(--rec-fg); }
+.recorder-btn { width: 52px; height: 52px; border-radius: 26px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--rec-btn); color: var(--rec-btn-in); }
+.recorder-stop { width: 15px; height: 15px; border-radius: 3px; background: var(--rec-btn-in); }
+.wave { flex: 1; display: flex; align-items: center; gap: 3px; height: 40px; overflow: hidden; }
+.wave i { width: 4px; flex: none; border-radius: 2px; background: var(--rec-fg); }
+.wave i.off { background: var(--rec-off); }

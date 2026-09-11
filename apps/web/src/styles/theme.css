@@ -1,0 +1,65 @@
+/* Valores del artboard "Sistema de diseño". Ningún componente usa colores sueltos. */
+:root,
+[data-theme='light'] {
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Geist', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --subtle: #f6f7f9;
+  --line: #e7e9ed;
+  --hair: #eff1f4;
+  --ink: #0a0a0b;
+  --ink2: #545b66;
+  --ink3: #6b717c;
+  --navy: #102a4c;
+  --navy-tint: #edf1f7;
+  --rec-bg: #0a0a0b;
+  --rec-fg: #ffffff;
+  --rec-off: rgba(255, 255, 255, 0.22);
+  --rec-btn: #ffffff;
+  --rec-btn-in: #0a0a0b;
+  --q-bg: #102a4c;
+  --q-fg: #ffffff;
+  --btn-bg: #102a4c;
+  --btn-fg: #ffffff;
+  --conf-bg: #102a4c;
+  --conf-fg: #ffffff;
+  --logo-bg: #102a4c;
+  --logo-fg: #ffffff;
+  --avatar-bg: #0a0a0b;
+  --avatar-fg: #ffffff;
+  --focus: rgba(16, 42, 76, 0.35);
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0a0a0b;
+  --surface: #111317;
+  --subtle: #16191e;
+  --line: #262a31;
+  --hair: #1c2026;
+  --ink: #f4f5f7;
+  --ink2: #aeb4bd;
+  --ink3: #8f959f;
+  --navy: #b3c6e4;
+  --navy-tint: #15253d;
+  --rec-bg: #17191d;
+  --rec-fg: #ffffff;
+  --rec-off: rgba(255, 255, 255, 0.24);
+  --rec-btn: #ffffff;
+  --rec-btn-in: #0a0a0b;
+  --q-bg: #102a4c;
+  --q-fg: #ffffff;
+  --btn-bg: #ffffff;
+  --btn-fg: #0a0a0b;
+  --conf-bg: #b3c6e4;
+  --conf-fg: #0a0a0b;
+  --logo-bg: #ffffff;
+  --logo-fg: #0a0a0b;
+  --avatar-bg: #102a4c;
+  --avatar-fg: #ffffff;
+  --focus: rgba(179, 198, 228, 0.45);
+  color-scheme: dark;
+}
