@@ -1,11 +1,15 @@
 import type {
   BaseInstalada,
+  CampoPregunta,
   DecisionDuplicado,
   Extraccion,
+  Faltante,
   LecturaPlaca,
   NuevaDecision,
   NuevaObservacion,
   ObservacionGuardada,
+  Pregunta,
+  Respuesta,
   RespuestaConsulta,
   Transcripcion,
 } from '@quorum/shared';
@@ -24,6 +28,8 @@ export const api = {
   transcribir: (audio: Blob) =>
     pedir<Transcripcion>('/api/transcribir', { method: 'POST', headers: { 'Content-Type': audio.type || 'audio/wav' }, body: audio }),
   extraer: (texto: string) => pedir<Extraccion>('/api/extraer', json({ texto })),
+  pregunta: (extraccion: Extraccion, omitidos: Faltante[] = []) => pedir<Pregunta | null>('/api/pregunta', json({ extraccion, omitidos })),
+  responder: (campo: CampoPregunta, texto: string) => pedir<Respuesta>('/api/respuesta', json({ campo, texto })),
   leerPlaca: (foto: Blob) =>
     pedir<LecturaPlaca>('/api/placa', { method: 'POST', headers: { 'Content-Type': foto.type || 'image/png' }, body: foto }),
   guardarObservacion: (observacion: NuevaObservacion) => pedir<ObservacionGuardada>('/api/observaciones', json(observacion)),

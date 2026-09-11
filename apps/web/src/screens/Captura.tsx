@@ -1,5 +1,5 @@
-import type { Evidencia, Extraccion } from '@quorum/shared';
-import { useMemo, useState } from 'react';
+import type { CampoPregunta, DatoExtraido, Evidencia, Extraccion, Faltante, Pregunta, Respuesta } from '@quorum/shared';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { IconCamera, IconCheck, IconMic, IconSend } from '../components/icons';
@@ -9,8 +9,6 @@ import { useBase } from '../datos/base';
 import { captura, clientePorId, type Dato, type Segmento } from '../mocks/data';
 
 const PASOS = ['Dictado', 'Extracción', 'Preguntas', 'Foto de placa', 'Guardar'];
-/** Respuesta rápida → años que se guardan como Estimado. */
-const RESPUESTAS: [string, number][] = [['Menos de 5', 3], ['5 a 10', 7], ['Más de 10', 12]];
 const ONDA = [6, 10, 16, 24, 14, 28, 20, 10, 22, 32, 18, 8, 14, 26, 22, 12, 6, 20, 34, 24, 14, 10, 22, 30, 12, 20, 8, 14, 24, 30, 18, 10, 20, 12, 26, 22, 8, 14, 10, 6, 12, 20, 26, 16, 10, 14, 8, 6, 10, 7, 5, 6, 4, 5, 4, 3, 4, 3, 3, 3, 4, 3, 3, 3, 3, 3];
 
 type Fase = 'listo' | 'grabando' | 'transcribiendo' | 'extrayendo' | 'guardando' | 'error';
@@ -35,6 +33,20 @@ function aVista(r: Extraccion): { equipos: EquipoVista[]; encabezado: Encabezado
       campos: { Marca: e.marca, Modelo: e.modelo, Antigüedad: { valor: anios(e.antiguedad.valor), estado: e.antiguedad.estado } },
     })),
   };
+}
+
+/** La extracción es la fuente: la respuesta se escribe ahí y la vista se deriva de nuevo. */
+function conRespuesta(r: Extraccion, indice: number, campo: CampoPregunta, dato: Respuesta): Extraccion {
+  const equipos = r.equipos.map((e, i) => {
+    if (i !== indice) return e;
+    const { estado } = dato;
+    if (campo === 'antiguedad') return { ...e, antiguedad: { valor: typeof dato.valor === 'number' ? dato.valor : null, estado } };
+    const texto: DatoExtraido<string> = { valor: dato.valor === null ? null : String(dato.valor), estado };
+    if (campo === 'marca') return { ...e, marca: texto };
+    if (campo === 'modelo') return { ...e, modelo: texto };
+    return e;
+  });
+  return { ...r, equipos };
 }
 
 /** Resalta en la transcripción los valores que la IA extrajo. */
@@ -67,6 +79,7 @@ function anotar(texto: string, r: Extraccion): Segmento[] {
 export function Captura() {
   const demo = clientePorId(captura.clienteId);
   const grabadora = useGrabadora();
+  const grabadoraRespuesta = useGrabadora();
   const { red, recargar } = useBase();
   const [fase, setFase] = useState<Fase>('listo');
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +89,23 @@ export function Captura() {
   const [equipos, setEquipos] = useState<EquipoVista[]>(captura.equipos);
   const [encabezado, setEncabezado] = useState<Encabezado>({ cliente: demo?.nombre ?? null, lugar: demo ? `${demo.ciudad}, ${demo.pais}` : null });
   const [modelos, setModelos] = useState('parakeet · qwen3-1.7b · datos de ejemplo');
-  const [respuesta, setRespuesta] = useState<{ id: string; texto: string } | null>(null);
+  const [pregunta, setPregunta] = useState<Pregunta | null>(null);
+  const [preguntadas, setPreguntadas] = useState<Faltante[]>([]);
+  const [preguntando, setPreguntando] = useState(false);
+  const [respuesta, setRespuesta] = useState<{ texto: string; estado: Respuesta['estado'] } | null>(null);
+  const [respuestaTexto, setRespuestaTexto] = useState('');
   const [guardada, setGuardada] = useState<{ cliente: string | null } | null>(null);
   const [texto, setTexto] = useState('');
+
+  /** El servidor elige el dato que más falta y redacta la pregunta; la tarjeta solo la muestra. */
+  const preguntar = async (fuente: Extraccion, omitidos: Faltante[]) => {
+    setPreguntando(true);
+    try {
+      setPregunta(await api.pregunta(fuente, omitidos));
+    } finally {
+      setPreguntando(false);
+    }
+  };
 
   const procesar = async (contenido: string, fuente: Evidencia, msTranscripcion?: number) => {
     setFase('extrayendo');
@@ -91,10 +118,13 @@ export function Captura() {
     setEquipos(vista.equipos);
     setEncabezado(vista.encabezado);
     setRespuesta(null);
+    setPregunta(null);
+    setPreguntadas([]);
     setGuardada(null);
     const partes = [msTranscripcion !== undefined ? `parakeet ${segundos(msTranscripcion)}` : null, `qwen3-1.7b ${segundos(performance.now() - t0)}`];
     setModelos(`${partes.filter(Boolean).join(' · ')} · en este dispositivo`);
     setFase('listo');
+    await preguntar(r, []);
   };
 
   const conError = (e: unknown) => {
@@ -129,18 +159,46 @@ export function Captura() {
     await procesar(contenido, 'texto').catch(conError);
   };
 
-  const pendiente = useMemo(() => {
-    const i = equipos.findIndex((e) => e.campos['Antigüedad']?.estado === 'Desconocido');
-    return i >= 0 ? { id: equipos[i].id, indice: i, etiqueta: `${equipos[i].nombre.toLowerCase()} ${String(i + 1).padStart(2, '0')}` } : null;
-  }, [equipos]);
+  const responder = async (texto: string) => {
+    const limpio = texto.trim();
+    if (!limpio || !pregunta || !extraccion) {
+      setPreguntando(false);
+      return;
+    }
+    const { equipo, campo } = pregunta;
+    // Un campo respondido no se vuelve a preguntar, aunque la respuesta haya sido "No sé".
+    const omitidos = [...preguntadas, { equipo, campo }];
+    setPreguntando(true);
+    setPreguntadas(omitidos);
+    setRespuestaTexto('');
+    try {
+      const dato = await api.responder(campo, limpio);
+      const actualizada = conRespuesta(extraccion, equipo, campo, dato);
+      setExtraccion(actualizada);
+      setEquipos(aVista(actualizada).equipos);
+      setRespuesta({ texto: limpio, estado: dato.estado });
+      await preguntar(actualizada, omitidos);
+    } catch (e) {
+      conError(e);
+    } finally {
+      setPreguntando(false);
+    }
+  };
 
-  const responder = (etiqueta: string, valor: number) => {
-    if (!pendiente) return;
-    setRespuesta({ id: pendiente.id, texto: etiqueta });
-    setEquipos((prev) => prev.map((e) => (e.id === pendiente.id ? { ...e, campos: { ...e.campos, Antigüedad: { valor: `~${valor} años`, estado: 'Estimado' } } } : e)));
-    setExtraccion((prev) =>
-      prev ? { ...prev, equipos: prev.equipos.map((e, i) => (i === pendiente.indice ? { ...e, antiguedad: { valor, estado: 'Estimado' } } : e)) } : prev,
-    );
+  const responderPorVoz = async () => {
+    setError(null);
+    try {
+      if (!grabadoraRespuesta.grabando) {
+        await grabadoraRespuesta.iniciar();
+        return;
+      }
+      const audio = await grabadoraRespuesta.detener();
+      setPreguntando(true);
+      await responder((await api.transcribir(audio)).texto);
+    } catch (e) {
+      setPreguntando(false);
+      conError(e);
+    }
   };
 
   const guardar = async () => {
@@ -165,7 +223,7 @@ export function Captura() {
   };
 
   const ocupado = fase === 'transcribiendo' || fase === 'extrayendo' || fase === 'guardando';
-  const paso = guardada ? 5 : grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pendiente ? 2 : 4;
+  const paso = guardada ? 5 : grabadora.grabando || fase === 'transcribiendo' ? 0 : fase === 'extrayendo' ? 1 : pregunta || preguntando ? 2 : 4;
   const onda = grabadora.grabando ? grabadora.niveles.map((n) => 4 + n * 36) : ONDA;
   const nota = grabadora.grabando ? 'Grabando · la voz no sale del dispositivo' : fase === 'transcribiendo' ? 'Transcribiendo en este dispositivo…' : fase === 'extrayendo' ? 'Extrayendo datos…' : 'Toca para dictar la visita';
 
@@ -237,28 +295,40 @@ export function Captura() {
               <span>Guardada en este dispositivo y firmada por <strong>{red?.este.nombre ?? 'este dispositivo'}</strong>. Se comparte al sincronizar.</span>
               {guardada.cliente && <Link to={`/hospitales/${idCliente(guardada.cliente)}`} className="btn btn-link">Ver en Hospitales</Link>}
             </section>
-          ) : respuesta ? (
-            <section className="card answered">
-              <IconCheck width={18} height={18} />
-              <span>Anotado: <strong>{respuesta.texto} años</strong> como Estimado</span>
-            </section>
           ) : (
-            pendiente && (
-              <section className="question" aria-label="Pregunta de seguimiento">
-                <div>
-                  <div className="question-kicker">Falta un dato clave · {pendiente.etiqueta}</div>
-                  <div className="question-text">¿Cuántos años tiene, más o menos?</div>
-                </div>
-                <div className="question-answers">
-                  {RESPUESTAS.map(([etiqueta, valor]) => (
-                    <button key={etiqueta} type="button" className="answer" onClick={() => responder(etiqueta, valor)}>{etiqueta}</button>
-                  ))}
-                  <button type="button" className="answer answer-icon" aria-label="Responder por voz">
-                    <IconMic width={17} height={17} />
-                  </button>
-                </div>
-              </section>
-            )
+            <>
+              {respuesta && (
+                <section className="card answered">
+                  <IconCheck width={18} height={18} />
+                  <span>Anotado: <strong>{respuesta.texto}</strong> como {respuesta.estado}</span>
+                </section>
+              )}
+              {(pregunta || preguntando) && (
+                <section className="question" aria-label="Pregunta de seguimiento" aria-busy={preguntando}>
+                  <div>
+                    <div className="question-kicker">{preguntando || !pregunta ? 'Pensando la pregunta…' : `Falta un dato clave · ${pregunta.razon}`}</div>
+                    <div className="question-text">{pregunta?.pregunta ?? '…'}</div>
+                  </div>
+                  <div className="question-answers">
+                    {pregunta?.respuestas.map((r) => (
+                      <button key={r} type="button" className="answer" onClick={() => void responder(r)} disabled={preguntando}>{r}</button>
+                    ))}
+                    <form onSubmit={(e) => { e.preventDefault(); void responder(respuestaTexto); }}>
+                      <input className="input" placeholder="O escribe la respuesta…" value={respuestaTexto} onChange={(e) => setRespuestaTexto(e.target.value)} disabled={preguntando} />
+                    </form>
+                    <button
+                      type="button"
+                      className="answer answer-icon"
+                      onClick={() => void responderPorVoz()}
+                      disabled={preguntando}
+                      aria-label={grabadoraRespuesta.grabando ? 'Terminar respuesta' : 'Responder por voz'}
+                    >
+                      {grabadoraRespuesta.grabando ? <span className="recorder-stop" /> : <IconMic width={17} height={17} />}
+                    </button>
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
 
