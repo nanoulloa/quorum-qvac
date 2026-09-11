@@ -43,6 +43,32 @@ Otros comandos: `npm run typecheck`, `npm run build`, `npm run dev:web`, `npm ru
 - Dependencias: React, React Router, Vite, Fastify, zod y Fontsource.
 - APIs remotas: ninguna.
 
+## Modelos y resultados medidos
+
+Todo corre en el dispositivo con `@qvac/sdk` 0.19. Medido en Apple M4 · 16 GB · macOS 26.5, en GPU.
+
+| Tarea | Modelo | Cuantización | Resultado | Latencia |
+|---|---|---|---|---|
+| Voz a texto | `PARAKEET_TDT_0_6B_V3_Q8_0` | Q8_0 | 14% de error por palabra (whisper-base: 25–31%) | ~1 s por 13 s de audio |
+| Extracción del dictado | `QWEN3_1_7B_INST_Q4` + reglas | Q4 | 100% de campos en 6 dictados de ajuste · 96% en 4 dictados nuevos | 3–5 s |
+| Lectura de placa | `VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` + `MMPROJ_VISIONPSY_NANO_460M_MULTIMODAL_Q8_0` | Q8_0 | 95% de campos en 30 placas sintéticas · 99% de los Confirmados correctos | 2,3 s (mediana) |
+| Duplicados | `EMBEDDINGGEMMA_300M_Q8_0` | Q8_0 | En integración | 0,6 s |
+
+Detalle de VisionPsy por campo y por variación (rotada, desenfocada, reflejo, bajo contraste) en [`docs/eval/vision.md`](docs/eval/vision.md). Prueba de humo en [`docs/perf/smoke-apple-m4.json`](docs/perf/smoke-apple-m4.json).
+
+**Por qué VisionPsy:** con 460M de parámetros cabe en hardware de teléfono y lee texto impreso en imágenes (757 en OCRBench), que es justo lo que hay en una placa. La confianza de cada campo no es una probabilidad del modelo: se calcula validando contra el catálogo de marcas y modelos y contra el formato de serie y fecha. Lo que no llega a 70 queda como Estimado.
+
+Para reproducir:
+
+```bash
+npm run smoke -w @quorum/server
+npm run eval:voz -w @quorum/server
+npm run eval:extraccion -w @quorum/server
+npm run placas:generar -w @quorum/server && npm run eval:placas -w @quorum/server
+```
+
+Cada inferencia del servidor queda en `apps/server/perf.jsonl` (modelo, cuantización, tokens, tiempo al primer token y tokens por segundo) y se consulta en `GET /api/perf`.
+
 ## Estado
 
 La interfaz funciona con datos de ejemplo mientras se conectan los modelos y la sincronización. El plan y el reparto están en los issues del repositorio.
