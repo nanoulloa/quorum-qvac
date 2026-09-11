@@ -166,7 +166,7 @@ export function Placa() {
               type="button"
               className="btn btn-primary"
               onClick={() => void aplicar()}
-              disabled={!lectura || !cliente || ocupado || Boolean(aplicada) || origen === 'ejemplo'}
+              disabled={!lectura || !cliente || ocupado || Boolean(aplicada) || origen !== 'dispositivo'}
               title={lectura ? undefined : 'Primero toma o elige una foto de la placa'}
             >
               <IconCheck /> {fase === 'aplicando' ? 'Aplicando…' : aplicada ? 'Lectura aplicada' : 'Aplicar al equipo'}

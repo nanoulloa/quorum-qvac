@@ -1,6 +1,5 @@
 import type { BaseInstalada, Desglose, EstadoRed, Evidencia, Modalidad } from '@quorum/shared';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import * as ejemplo from '../mocks/data';
 import type { Dato } from '../mocks/data';
 
 export type Persona = { id: string; nombre: string; iniciales: string; clave: string };
@@ -30,8 +29,13 @@ type Contexto = {
   /** Pares de reportes que alguien marcó como equipos distintos. */
   distintos: [string, string][];
   red: EstadoRed | null;
-  /** `dispositivo`: datos del almacén local. `ejemplo`: el servidor local no respondió. */
-  origen: 'dispositivo' | 'ejemplo';
+  /**
+   * `cargando`: el servidor local todavía no respondió. `dispositivo`: datos del almacén local, al día.
+   * `sin-servidor`: dejó de responder; se conserva lo último que llegó. Nunca se muestran datos de ejemplo (#54).
+   */
+  origen: 'cargando' | 'dispositivo' | 'sin-servidor';
+  /** Hora de la última respuesta del servidor local. */
+  actualizado: string | null;
   recargar: () => Promise<void>;
 };
 
@@ -97,18 +101,7 @@ function desdeApi(base: BaseInstalada) {
   return { clientes, equipos, distintos: base.distintos };
 }
 
-function desdeEjemplo() {
-  return {
-    clientes: ejemplo.clientes,
-    equipos: ejemplo.equipos.map<EquipoUI>((e) => ({
-      ...e,
-      refs: [e.id],
-      serie: { valor: null, estado: 'Desconocido' },
-      testigos: e.testigos.map((t, i) => ({ ...ejemplo.personas[t], evidencia: i === 0 ? e.evidencia : 'voz', dias: e.dias + i * 4 })),
-    })),
-    distintos: [] as [string, string][],
-  };
-}
+const VACIA = { clientes: [] as ClienteUI[], equipos: [] as EquipoUI[], distintos: [] as [string, string][] };
 
 const BaseContexto = createContext<Contexto | null>(null);
 
@@ -120,14 +113,15 @@ async function json<T>(ruta: string): Promise<T> {
 
 /** Mantiene la base instalada y el estado de la red al día consultando el servidor local. */
 export function BaseProvider({ children }: { children: ReactNode }) {
-  const [datos, setDatos] = useState(() => ({ ...desdeEjemplo(), red: null as EstadoRed | null, origen: 'ejemplo' as Contexto['origen'] }));
+  const [datos, setDatos] = useState<Omit<Contexto, 'recargar'>>(() => ({ ...VACIA, red: null, origen: 'cargando', actualizado: null }));
 
   const recargar = useCallback(async () => {
     try {
       const [base, red] = await Promise.all([json<BaseInstalada>('/api/base'), json<EstadoRed>('/api/red')]);
-      setDatos({ ...desdeApi(base), red, origen: 'dispositivo' });
+      setDatos({ ...desdeApi(base), red, origen: 'dispositivo', actualizado: new Date().toISOString() });
     } catch {
-      setDatos((d) => (d.origen === 'ejemplo' ? d : { ...desdeEjemplo(), red: null, origen: 'ejemplo' }));
+      // Se queda con lo último que llegó del dispositivo, marcado como sin servidor.
+      setDatos((d) => (d.origen === 'sin-servidor' ? d : { ...d, origen: 'sin-servidor' }));
     }
   }, []);
 

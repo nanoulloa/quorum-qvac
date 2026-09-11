@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { api } from '../api';
 import { iniciales, useBase } from '../datos/base';
-import { yo } from '../mocks/data';
 import { PrimerUso, type ContextoPerfil } from '../screens/PrimerUso';
 import { IconBuilding, IconChart, IconGauge, IconMic, IconMoon, IconNetwork, IconSearch, IconSun } from './icons';
 import { useTheme } from './useTheme';
@@ -19,10 +18,10 @@ const links = [
 
 export function Layout() {
   const { theme, toggle } = useTheme();
-  const { red, recargar } = useBase();
-  // undefined: todavía no se sabe. null: el servidor local no responde y la app sigue con datos de ejemplo.
+  const { red, origen, actualizado, recargar } = useBase();
+  // undefined: todavía no se sabe. null: el servidor local no responde.
   const [perfil, setPerfil] = useState<Perfil | null | undefined>(undefined);
-  const nombre = perfil?.nombre ?? red?.este.nombre ?? yo.nombre;
+  const nombre = perfil?.nombre ?? red?.este.nombre ?? 'Este dispositivo';
   const nextLabel = theme === 'dark' ? 'Tema claro' : 'Tema oscuro';
 
   useEffect(() => {
@@ -75,6 +74,15 @@ export function Layout() {
         </NavLink>
       </nav>
       <main className="main">
+        {/* Imposible de pasar por alto: sin servidor no hay datos nuevos ni se puede capturar (#54). */}
+        {origen === 'sin-servidor' && (
+          <div className="aviso-servidor" role="alert">
+            <strong>El servidor local no responde.</strong>{' '}
+            {actualizado
+              ? `Lo que ves es lo último que llegó de este dispositivo, a las ${new Date(actualizado).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}. Capturar, consultar y sincronizar vuelven cuando responda.`
+              : 'No hay datos que mostrar. Inícialo con npm run dev en la carpeta del proyecto.'}
+          </div>
+        )}
         <Outlet context={contexto} />
       </main>
     </div>

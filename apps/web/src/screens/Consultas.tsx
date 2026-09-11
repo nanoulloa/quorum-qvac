@@ -147,11 +147,11 @@ export function Consultas() {
                 aria-label={grabadora.grabando ? 'Detener y consultar' : 'Consultar por voz'}
                 aria-pressed={grabadora.grabando}
                 onClick={() => void dictar()}
-                disabled={ocupado || origen === 'ejemplo'}
+                disabled={ocupado || origen !== 'dispositivo'}
               >
                 {grabadora.grabando ? <span className="consulta-mic-stop" /> : <IconMic />}
               </button>
-              <button type="submit" className="btn btn-primary" disabled={ocupado || grabadora.grabando || origen === 'ejemplo'}>{consultando ? 'Consultando…' : 'Consultar'}</button>
+              <button type="submit" className="btn btn-primary" disabled={ocupado || grabadora.grabando || origen !== 'dispositivo'}>{consultando ? 'Consultando…' : 'Consultar'}</button>
             </form>
             <div className="consulta-interpretacion">
               <span className="eyebrow">Interpretado como</span>
@@ -209,7 +209,7 @@ export function Consultas() {
             <div className="eyebrow">Preguntas de ejemplo</div>
             <div className="recientes">
               {EJEMPLOS.map((p) => (
-                <button key={p} type="button" className={`reciente${p === texto ? ' on' : ''}`} onClick={() => void consultar(p)} disabled={ocupado || grabadora.grabando || origen === 'ejemplo'}>{p}</button>
+                <button key={p} type="button" className={`reciente${p === texto ? ' on' : ''}`} onClick={() => void consultar(p)} disabled={ocupado || grabadora.grabando || origen !== 'dispositivo'}>{p}</button>
               ))}
             </div>
           </section>
