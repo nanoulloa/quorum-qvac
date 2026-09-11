@@ -9,6 +9,7 @@
     "dev": "concurrently -n web,server -c blue,gray \"npm run dev -w @quorum/web\" \"npm run dev -w @quorum/server\"",
     "dev:web": "npm run dev -w @quorum/web",
     "dev:server": "npm run dev -w @quorum/server",
+    "dev:b": "concurrently -n web-b,server-b -c magenta,gray \"QUORUM_API_PORT=4001 QUORUM_WEB_PORT=5174 QUORUM_VITE_CACHE=node_modules/.vite-b npm run dev -w @quorum/web\" \"QUORUM_API_PORT=4001 QUORUM_DATA_DIR=.quorum-b QUORUM_PERF_LOG=perf-b.jsonl npm run dev -w @quorum/server\"",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"

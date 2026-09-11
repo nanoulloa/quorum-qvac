@@ -35,6 +35,8 @@ Con el servidor corriendo, `npm run semilla -w @quorum/server` carga visitas fic
 3. Las dos necesitan red para encontrarse. En segundos B recibe la base de A, y lo que cualquiera capture o decida en "Red P2P" aparece en la otra.
 4. Para sumar otro dispositivo después, abre **Red P2P → Agregar dispositivo**: ahí está el código.
 
+Sin una segunda laptop, `npm run dev:b` levanta un segundo dispositivo en la misma máquina. Tiene su propio servidor en el puerto 4001, su almacén en `apps/server/.quorum-b` y su propia clave, y su web queda en http://localhost:5174. Se encuentra con el primero por Hyperswarm, igual que dos laptops.
+
 El nombre y el código se guardan solo en ese dispositivo (`apps/server/.quorum/perfil.json`). Sin código, el dispositivo no busca a nadie.
 
 | Variable | Para qué |

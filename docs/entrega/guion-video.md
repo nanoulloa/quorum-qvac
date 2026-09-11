@@ -40,14 +40,21 @@ y copia el código `QRM-XXXX-XXXX-XXXX`. Después, la base de ejemplo:
 npm run semilla -w @quorum/server    # POST /api/semilla · 18 visitas ficticias
 ```
 
-Laptop B (solo aparece en la toma 6, no se siembra):
+Dispositivo B (solo aparece en la toma 6, no se siembra). Si no hay una segunda laptop, corre en la
+**misma Mac** como otra instancia, con su propio servidor, almacén y clave:
 
 ```bash
-npm run dev
+npm run dev:b    # servidor en :4001 · web en http://localhost:5174 · datos en apps/server/.quorum-b
 ```
 
-Mismo primer uso: nombre `Ana Ríos`, **Unirme con un código**, y pegar el código de A. Arranca vacía,
-que es justo lo que la toma 6 necesita mostrar.
+- **Perfil:** `Ana Ríos`, unido al código de A. Se deja escrito en `apps/server/.quorum-b/perfil.json`
+  antes de grabar, así B no pasa por la bienvenida.
+- **Arrancar B con el modo avión ya encendido.** Sin red no encuentra a A y sigue vacío, que es justo
+  lo que la toma 6 necesita mostrar.
+- **Ventanas:** B se abre en una segunda ventana del navegador, a la derecha de la de A.
+
+**Ensayar la toma 6 una vez antes de grabar.** Con las dos ventanas abiertas, apagar el modo avión y
+cronometrar hasta "Conectado con 1 dispositivo". Si tarda más de 20 s, cortar la espera en la edición.
 
 El perfil queda en `apps/server/.quorum/perfil.json` de cada máquina. Para volver a ver la pantalla
 de bienvenida, borrar ese archivo. El código se recupera en cualquier momento desde
@@ -113,12 +120,14 @@ primera frase.
 
 ## 5 · La toma P2P (toma 6 · 0:55)
 
-Las dos laptops en el mismo encuadre, A a la izquierda, B a la derecha.
+Las dos ventanas en el mismo encuadre: A (`localhost:5173`) a la izquierda, B (`localhost:5174`) a la
+derecha. Si B corre en la misma Mac, se dice en cámara.
 
 1. **0:00–0:10** · A en `/red`: "Buscando dispositivos del equipo". B en `/red`, sin sembrar:
    su lista tiene un solo dispositivo, "Ana Ríos · este dispositivo", 0 entradas propias.
-   *"Esta segunda laptop está vacía. No hay servidor: no hay a quién preguntarle."*
-2. **0:10–0:20** · Apagar el modo avión en ambas, en cámara.
+   *"Este es un segundo dispositivo del equipo, aquí en la misma Mac, con su propio almacén y su
+   propia clave. Está vacío. No hay servidor: no hay a quién preguntarle."*
+2. **0:10–0:20** · Apagar el modo avión, en cámara.
    *"Enciendo la red. No hay backend que levantar."*
 3. **0:20–0:40** · Sin tocar nada más, en las dos pantallas: **Estado** pasa a
    "Conectado con 1 dispositivo"; en **Actividad de sincronización** aparecen
@@ -135,7 +144,9 @@ Las dos laptops en el mismo encuadre, A a la izquierda, B a la derecha.
    confianza sube. La decisión también va firmada y también se sincroniza."*
 
 Cómo se ve que no hay servidor en medio: el modo avión estuvo encendido hasta el paso 2, B nunca se
-sembró, y nadie abrió una consola ni una URL distinta de `localhost` en ninguna de las dos máquinas.
+sembró, y nadie abrió una consola ni una URL distinta de `localhost`. Los dos dispositivos se
+encuentran por la DHT de Hyperswarm igual que dos laptops en casas distintas; así se probó también
+con la laptop de Steven, desde otra casa.
 
 ## 6 · Cierre (últimos 20 s)
 
