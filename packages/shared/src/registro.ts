@@ -78,6 +78,8 @@ export type Dispositivo = {
   enLinea: boolean;
   observaciones: number;
   ultimaVez: string | null;
+  /** Corre las consultas de los demás con Qwen3 4B. */
+  ofreceConsultas: boolean;
 };
 
 /** Contrato de GET /api/red. */
@@ -89,7 +91,7 @@ export type EstadoRed = {
 };
 
 /** Contrato de GET /api/perfil. `equipo` es el código que comparten los dispositivos del equipo. */
-export type Perfil = { configurado: boolean; nombre: string; equipo: string | null; clave: string };
+export type Perfil = { configurado: boolean; nombre: string; equipo: string | null; clave: string; ofreceConsultas: boolean };
 
 /** Contrato de POST /api/perfil: crear un equipo o unirse con un código. Sin `equipo` ni `crear` se conserva el actual. */
-export type NuevoPerfil = { nombre: string; equipo?: string; crear?: boolean };
+export type NuevoPerfil = { nombre: string; equipo?: string; crear?: boolean; ofreceConsultas?: boolean };

@@ -94,7 +94,7 @@ export function Consultas() {
     try {
       const r = await api.consulta(limpia);
       setFiltros(r.filtros);
-      setMeta(`${r.modelo} · en este dispositivo · ${segundos(r.duracionMs)}`);
+      setMeta(`${r.modelo} · ${r.par ? `en el par ${r.par}` : 'en este dispositivo'} · ${segundos(r.duracionMs)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo interpretar la pregunta.');
       setMeta('Sin interpretar');

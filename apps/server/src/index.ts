@@ -11,8 +11,8 @@ import { guardarPerfil, leerPerfil, normalizarCodigo, nuevoCodigo } from './dato
 import { sembrar } from './datos/semilla.ts';
 import { construirBase } from './datos/vista.ts';
 import { leerPlaca } from './placa/lectura.ts';
-import { transcribir } from './qvac/inferir.ts';
-import { cerrarModelos } from './qvac/modelos.ts';
+import { completarJsonConRegistro, transcribir } from './qvac/inferir.ts';
+import { cerrarModelos, modelo } from './qvac/modelos.ts';
 import { leerRegistro } from './qvac/perf.ts';
 import { Red, SECRETO_EQUIPO } from './red/red.ts';
 
@@ -29,13 +29,26 @@ const perfilGuardado = await leerPerfil(DIRECTORIO);
 const almacen = new Almacen(DIRECTORIO, perfilGuardado?.nombre ?? NOMBRE_DISPOSITIVO);
 await almacen.abrir();
 const red = new Red(almacen, perfilGuardado?.equipo ?? SECRETO_EQUIPO);
+// Un par del equipo puede pedirle a este dispositivo que corra sus consultas con Qwen3 4B. Solo consultas:
+// fotos de placa y dictados nunca salen del dispositivo.
+red.atenderConsulta = (pedido) => completarJsonConRegistro({ clave: 'consultas', tarea: 'consulta', ...pedido });
+red.ofreceConsultas = perfilGuardado?.ofreceConsultas ?? process.env.QUORUM_OFRECE_CONSULTAS === 'on';
+// Se precarga para que el primer pedido de un par no espere la carga del modelo.
+const precargarConsultas = () => void modelo('consultas').catch(() => {});
+if (red.ofreceConsultas) precargarConsultas();
 const p2p = process.env.QUORUM_P2P !== 'off';
 if (p2p) red.iniciar();
 
 // Toda la inferencia corre en este proceso con @qvac/sdk. Nunca se llama a una API de IA remota.
 app.get('/api/health', async () => ({ ok: true, inferencia: 'local', dispositivo: almacen.nombre }));
 
-const perfil = (): Perfil => ({ configurado: Boolean(red.equipo), nombre: almacen.nombre, equipo: red.equipo, clave: almacen.clave });
+const perfil = (): Perfil => ({
+  configurado: Boolean(red.equipo),
+  nombre: almacen.nombre,
+  equipo: red.equipo,
+  clave: almacen.clave,
+  ofreceConsultas: red.ofreceConsultas,
+});
 
 app.get('/api/perfil', async () => perfil());
 
@@ -45,7 +58,12 @@ app.post<{ Body: NuevoPerfil }>('/api/perfil', async (req, reply) => {
   if (!nombre || nombre.length > 60) return reply.code(400).send({ error: 'Escribe tu nombre (hasta 60 caracteres).' });
   const equipo = req.body.crear ? nuevoCodigo() : req.body.equipo ? normalizarCodigo(req.body.equipo) : red.equipo;
   if (!equipo) return reply.code(400).send({ error: 'Revisa el código del equipo: tiene la forma QRM-XXXX-XXXX-XXXX.' });
-  await guardarPerfil(DIRECTORIO, { nombre, equipo });
+  const ofreceConsultas = typeof req.body.ofreceConsultas === 'boolean' ? req.body.ofreceConsultas : red.ofreceConsultas;
+  await guardarPerfil(DIRECTORIO, { nombre, equipo, ofreceConsultas });
+  if (ofreceConsultas !== red.ofreceConsultas) {
+    red.ofrecerConsultas(ofreceConsultas);
+    if (ofreceConsultas) precargarConsultas();
+  }
   if (nombre !== almacen.nombre) {
     almacen.renombrar(nombre);
     red.evento(`Este dispositivo firma como ${nombre}`);
@@ -117,7 +135,8 @@ app.post<{ Body: { texto?: string } }>('/api/consulta', async (req, reply) => {
   if (!texto) return reply.code(400).send({ error: 'Falta "texto".' });
   const base = construirBase(await almacen.entradas());
   const ciudades = [...new Set(base.clientes.map((c) => c.ciudad).filter((c): c is string => Boolean(c)))];
-  return interpretarConsulta(texto, { clientes: base.clientes.map((c) => c.nombre), ciudades });
+  // Si un par ofrece consultas, la propuesta del modelo corre allá; si no, aquí.
+  return interpretarConsulta(texto, { clientes: base.clientes.map((c) => c.nombre), ciudades }, (pedido) => red.delegarConsulta(pedido));
 });
 
 app.get('/api/base', async () => construirBase(await almacen.entradas()));

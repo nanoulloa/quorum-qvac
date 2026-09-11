@@ -4,6 +4,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { randomUUID } from 'node:crypto';
 import { completion, transcribe } from '@qvac/sdk';
+import type { RegistroInferencia } from '@quorum/shared';
 import { modelo, type ClaveModelo } from './modelos.ts';
 import { registrar, type Tarea } from './perf.ts';
 
@@ -17,8 +18,11 @@ type OpcionesJson = {
   esquema: Record<string, unknown>;
 };
 
-/** Completion con salida JSON garantizada por esquema. Registra la inferencia en perf.jsonl. */
-export async function completarJson<T>({ clave, tarea, history, nombreEsquema, esquema }: OpcionesJson): Promise<T> {
+/**
+ * Completion con salida JSON garantizada por esquema. Registra la inferencia en perf.jsonl y devuelve
+ * también ese registro, para que un par que delegó la consulta sepa qué modelo la corrió y cuánto tardó.
+ */
+export async function completarJsonConRegistro<T>({ clave, tarea, history, nombreEsquema, esquema }: OpcionesJson): Promise<{ valor: T; registro: RegistroInferencia }> {
   const m = await modelo(clave);
   const t0 = performance.now();
   const prompt = history.map((h) => h.content).join('\n---\n');
@@ -35,7 +39,7 @@ export async function completarJson<T>({ clave, tarea, history, nombreEsquema, e
       // Se consume el stream para que `final` resuelva.
     }
     const final = await run.final;
-    await registrar({
+    const registro: RegistroInferencia = {
       fecha: new Date().toISOString(),
       tarea,
       modelo: m.nombre,
@@ -49,8 +53,9 @@ export async function completarJson<T>({ clave, tarea, history, nombreEsquema, e
       ttftMs: final.stats?.timeToFirstToken,
       tokensPorSegundo: final.stats?.tokensPerSecond,
       backend: final.stats?.backendDevice,
-    });
-    return JSON.parse(final.contentText.trim()) as T;
+    };
+    await registrar(registro);
+    return { valor: JSON.parse(final.contentText.trim()) as T, registro };
   } catch (error) {
     await registrar({
       fecha: new Date().toISOString(),
@@ -64,6 +69,11 @@ export async function completarJson<T>({ clave, tarea, history, nombreEsquema, e
     });
     throw error;
   }
+}
+
+/** Completion con salida JSON garantizada por esquema. Registra la inferencia en perf.jsonl. */
+export async function completarJson<T>(opciones: OpcionesJson): Promise<T> {
+  return (await completarJsonConRegistro<T>(opciones)).valor;
 }
 
 const EXTENSIONES: Record<string, string> = {

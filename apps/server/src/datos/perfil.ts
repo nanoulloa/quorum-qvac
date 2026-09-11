@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 /** Lo que la persona elige al abrir Quorum por primera vez. Se guarda solo en este dispositivo. */
-export type PerfilGuardado = { nombre: string; equipo: string };
+export type PerfilGuardado = { nombre: string; equipo: string; ofreceConsultas?: boolean };
 
 const ARCHIVO = 'perfil.json';
 // Sin caracteres que se confunden al dictar o copiar el código: I, O, 0 y 1.
@@ -26,7 +26,7 @@ export function normalizarCodigo(codigo: string): string | null {
 export async function leerPerfil(directorio: string): Promise<PerfilGuardado | null> {
   try {
     const p = JSON.parse(await fs.readFile(path.join(directorio, ARCHIVO), 'utf8')) as Partial<PerfilGuardado>;
-    return p.nombre && p.equipo ? { nombre: p.nombre, equipo: p.equipo } : null;
+    return p.nombre && p.equipo ? { nombre: p.nombre, equipo: p.equipo, ofreceConsultas: p.ofreceConsultas === true } : null;
   } catch {
     return null;
   }

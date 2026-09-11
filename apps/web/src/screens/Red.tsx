@@ -53,8 +53,9 @@ function comparar(a: EquipoUI, b: EquipoUI): Comparacion[] {
 export function Red() {
   const { red, equipos, clientes, distintos, origen, recargar } = useBase();
   const [decidiendo, setDecidiendo] = useState(false);
-  const { perfil } = useOutletContext<ContextoPerfil>();
+  const { perfil, alGuardarPerfil } = useOutletContext<ContextoPerfil>();
   const [agregando, setAgregando] = useState(false);
+  const [cambiandoOferta, setCambiandoOferta] = useState(false);
   const pares = red?.dispositivos.filter((d) => !d.esEste) ?? [];
   const enLinea = pares.filter((d) => d.enLinea).length;
   const duplicados = useMemo(() => posiblesDuplicados(equipos, distintos), [equipos, distintos]);
@@ -78,6 +79,16 @@ export function Red() {
       await recargar();
     } finally {
       setDecidiendo(false);
+    }
+  };
+
+  const ofrecerConsultas = async (activo: boolean) => {
+    if (!perfil) return;
+    setCambiandoOferta(true);
+    try {
+      alGuardarPerfil(await api.guardarPerfil({ nombre: perfil.nombre, ofreceConsultas: activo }));
+    } finally {
+      setCambiandoOferta(false);
     }
   };
 
@@ -169,10 +180,20 @@ export function Red() {
                   <strong>{d.nombre}{d.esEste ? ' · este dispositivo' : ''}</strong>
                   <span className="mono faint">ed25519 · {abreviarClave(d.clave)}</span>
                   <span className="faint">{d.observaciones} {d.observaciones === 1 ? 'entrada propia' : 'entradas propias'}</span>
+                  {d.ofreceConsultas && <span className="dispositivo-proveedor">Ofrece consultas · Qwen3 4B</span>}
                 </span>
                 <span className={`dispositivo-estado${d.enLinea ? ' on' : ''}`}>{d.esEste ? 'Este' : d.enLinea ? 'En línea' : vistoHace(d.ultimaVez)}</span>
               </div>
             ))}
+            {perfil && (
+              <label className="ofrecer-consultas">
+                <input type="checkbox" checked={perfil.ofreceConsultas} disabled={cambiandoOferta} onChange={(e) => void ofrecerConsultas(e.target.checked)} />
+                <span>
+                  <strong>Ofrecer consultas al equipo</strong>
+                  <span className="faint">Este dispositivo corre Qwen3 4B para las consultas de los demás. Fotos y dictados nunca salen de cada dispositivo.</span>
+                </span>
+              </label>
+            )}
           </section>
 
           {duplicados.length > 1 && (
