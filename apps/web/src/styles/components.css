@@ -31,6 +31,10 @@
 .summary-item + .summary-item { border-left: 1px solid var(--hair); }
 .summary-value { font-family: var(--font-serif); font-size: 38px; line-height: 1; }
 
+/* Aviso de servidor caído: contraste máximo, arriba del contenido */
+.aviso-servidor { padding: 12px 16px; border-radius: 12px; background: var(--ink); color: var(--bg); font-size: 14px; line-height: 1.5; }
+.aviso-servidor strong { font-weight: 600; }
+
 /* Nota discreta */
 .note { padding: 14px 16px; border-radius: 12px; background: var(--subtle); font-size: 13px; color: var(--ink2); line-height: 1.55; }
 

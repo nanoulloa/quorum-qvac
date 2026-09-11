@@ -22,7 +22,14 @@ export function Connection() {
   const { red, origen } = useBase();
   const enLinea = useEnLinea();
   const pares = red?.dispositivos.filter((d) => !d.esEste && d.enLinea).length ?? 0;
-  const estadoRed = origen === 'ejemplo' ? 'Servidor local sin respuesta' : pares > 0 ? `${pares} ${pares === 1 ? 'par' : 'pares'} en línea` : 'Sin pares conectados';
+  const estadoRed =
+    origen === 'sin-servidor'
+      ? 'Servidor local sin respuesta'
+      : origen === 'cargando'
+        ? 'Conectando…'
+        : pares > 0
+          ? `${pares} ${pares === 1 ? 'par' : 'pares'} en línea`
+          : 'Sin pares conectados';
   return (
     <div className="connection mono">
       <span className="connection-item">

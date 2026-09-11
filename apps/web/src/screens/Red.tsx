@@ -61,14 +61,16 @@ export function Red() {
   const duplicados = useMemo(() => posiblesDuplicados(equipos, distintos), [equipos, distintos]);
   const nombreCliente = (id: string) => clientes.find((c) => c.id === id)?.nombre ?? id;
 
-  if (origen === 'ejemplo' || !red) {
+  // Sin respuesta nunca: no hay nada que mostrar. Si el servidor cae después, se ve lo último que llegó.
+  if (!red) {
     return (
       <>
         <PageHeader eyebrow="Sistema" title="Red P2P" subtitle="Tu equipo sincroniza de dispositivo a dispositivo, sin servidor central." />
-        <p className="note">El servidor local no responde. Inícialo con <span className="mono">npm run dev</span> para ver los dispositivos del equipo.</p>
+        <p className="note">{origen === 'cargando' ? 'Conectando con el servidor local…' : 'Todavía no hay datos de la red de este dispositivo.'}</p>
       </>
     );
   }
+  const sinServidor = origen !== 'dispositivo';
 
   const [actual, otro] = duplicados[0] ?? [];
   const decidir = async (tipo: 'fusion' | 'distintos') => {
@@ -137,8 +139,8 @@ export function Red() {
               ))}
               <div className="duplicado-acciones">
                 <span className="faint">Al unirlos, el equipo suma un testigo independiente y sube su confianza. La decisión queda firmada y se sincroniza.</span>
-                <button type="button" className="btn btn-ghost" disabled={decidiendo} onClick={() => void decidir('distintos')}>Son distintos</button>
-                <button type="button" className="btn btn-primary" disabled={decidiendo} onClick={() => void decidir('fusion')}>Es el mismo, unir</button>
+                <button type="button" className="btn btn-ghost" disabled={decidiendo || sinServidor} onClick={() => void decidir('distintos')}>Son distintos</button>
+                <button type="button" className="btn btn-primary" disabled={decidiendo || sinServidor} onClick={() => void decidir('fusion')}>Es el mismo, unir</button>
               </div>
             </section>
           ) : (
@@ -187,7 +189,7 @@ export function Red() {
             ))}
             {perfil && (
               <label className="ofrecer-consultas">
-                <input type="checkbox" checked={perfil.ofreceConsultas} disabled={cambiandoOferta} onChange={(e) => void ofrecerConsultas(e.target.checked)} />
+                <input type="checkbox" checked={perfil.ofreceConsultas} disabled={cambiandoOferta || sinServidor} onChange={(e) => void ofrecerConsultas(e.target.checked)} />
                 <span>
                   <strong>Ofrecer consultas al equipo</strong>
                   <span className="faint">Este dispositivo corre Qwen3 4B para las consultas de los demás. Fotos y dictados nunca salen de cada dispositivo.</span>
