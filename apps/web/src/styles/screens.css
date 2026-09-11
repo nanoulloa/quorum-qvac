@@ -8,7 +8,11 @@
 .transcript-text { margin: 0; font-size: 22px; line-height: 1.8; letter-spacing: -0.01em; text-wrap: pretty; }
 .transcript-form { display: flex; gap: 8px; margin-top: auto; }
 .transcript-meta { font-size: 12px; }
-.question-answers { display: flex; gap: 8px; flex: none; }
+/* Con cuatro respuestas, el campo de texto y el micrófono, la fila no entra en la tarjeta
+   y aplastaba la pregunta contra el borde: que baje de línea en vez de empujar. */
+.question { flex-wrap: wrap; }
+.question-body { flex: 1 1 260px; min-width: 0; }
+.question-answers { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; min-width: 0; }
 .answered { display: flex; align-items: center; gap: 12px; padding: 18px 22px; color: var(--ink2); }
 .answered svg { color: var(--navy); }
 .answered strong { color: var(--ink); font-weight: 600; }

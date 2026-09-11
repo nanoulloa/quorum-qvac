@@ -308,7 +308,7 @@ export function Captura() {
               )}
               {(pregunta || preguntando) && (
                 <section className="question" aria-label="Pregunta de seguimiento" aria-busy={preguntando}>
-                  <div>
+                  <div className="question-body">
                     <div className="question-kicker">{preguntando || !pregunta ? 'Pensando la pregunta…' : `Falta un dato clave · ${pregunta.razon}`}</div>
                     <div className="question-text">{pregunta?.pregunta ?? '…'}</div>
                   </div>
