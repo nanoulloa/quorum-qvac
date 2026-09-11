@@ -88,7 +88,7 @@ const SISTEMA = [
   'Un ingeniero de campo acaba de dictar lo que vio en un hospital y falta un dato de un equipo médico.',
   'Escribe UNA sola pregunta corta y natural para pedirle ese dato, tuteándolo.',
   'Reglas:',
-  '- Nombra el equipo tal como te lo dan ("el segundo resonador") y agrega la marca y el modelo si te los dan.',
+  '- Nombra el equipo exactamente como te lo dan, sin agregar números ni orden, y agrega la marca y el modelo si te los dan.',
   '- Pregunta solo por el dato que falta, nada más.',
   '- Escribe además una razón: por qué ese dato importa para el negocio, en 12 palabras o menos.',
   '- Todo en español, sin saludos ni comentarios.',
@@ -100,6 +100,29 @@ const SISTEMA = [
 export function enDocePalabras(razon: string) {
   const palabras = razon.trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '').split(' ');
   return palabras.length <= 12 ? palabras.join(' ') : `${palabras.slice(0, 12).join(' ')}…`;
+}
+
+const PLANTILLA: Record<CampoPregunta, (equipo: string) => string> = {
+  antiguedad: (equipo) => `¿Cuántos años tiene ${equipo}?`,
+  modelo: (equipo) => `¿Qué modelo es ${equipo}?`,
+  marca: (equipo) => `¿De qué marca es ${equipo}?`,
+  cantidad: (equipo) => `¿Cuántos hay como ${equipo}?`,
+};
+
+const ORDENES = new Set(['primer', 'primero', 'primera', 'segundo', 'segunda', 'tercer', 'tercero', 'tercera', 'cuarto', 'cuarta', 'quinto', 'quinta', 'sexto', 'sexta']);
+
+/**
+ * Qwen3 1.7B a veces agrega un orden que no existe ("el segundo resonador" con un solo resonador) o contexto
+ * inventado ("que se utilizó en el caso"). Si la pregunta nombra un orden que el equipo no tiene, se alarga
+ * más de seis palabras sobre el nombre del equipo o no es una pregunta, se usa una plantilla fija.
+ */
+export function preguntaSegura(pregunta: string, equipo: string, campo: CampoPregunta): string {
+  const texto = pregunta.trim();
+  const delEquipo = normalizar(equipo).split(' ');
+  const palabras = normalizar(texto).split(' ');
+  const inventaOrden = palabras.some((palabra) => ORDENES.has(palabra) && !delEquipo.includes(palabra));
+  const agregaContexto = palabras.length > delEquipo.length + 6;
+  return inventaOrden || agregaContexto || !texto.endsWith('?') ? PLANTILLA[campo](equipo) : texto;
 }
 
 /** El modelo solo redacta: qué se pregunta y qué respuestas se ofrecen ya está decidido. */
@@ -116,20 +139,39 @@ export async function redactarPregunta(extraccion: Extraccion, faltante: Faltant
       { role: 'user', content: `Equipo: ${equipo}.\nDato que falta: ${EN_PALABRAS[faltante.campo]}.` },
     ],
   });
-  return { ...faltante, pregunta: redactado.pregunta.trim(), razon: enDocePalabras(redactado.razon), respuestas: respuestasDe(e, faltante.campo) };
+  return {
+    ...faltante,
+    pregunta: preguntaSegura(redactado.pregunta, equipo, faltante.campo),
+    razon: enDocePalabras(redactado.razon),
+    respuestas: respuestasDe(e, faltante.campo),
+  };
 }
 
 const NEGATIVAS = ['no se', 'no lo se', 'ni idea', 'no'];
 
 const MODELOS = Object.values(CATALOGO).flat();
 
+/** "No lo vi", "no hay un segundo modelo", "ni idea": no son un dato. */
+const esNegativa = (n: string) => NEGATIVAS.includes(n) || /^(no|ni)\b/.test(n);
+
+/** Una marca o un modelo son nombres cortos; una frase larga es un comentario, no el dato. */
+const pareceNombre = (texto: string, maxPalabras: number) => texto.split(/\s+/).length <= maxPalabras && texto.length <= 32;
+
+const DESCONOCIDO: Respuesta = { valor: null, estado: 'Desconocido' };
+
 /** Convierte la respuesta del ingeniero en un dato con estado. Determinista, sin modelo. */
 export function interpretarRespuesta(campo: CampoPregunta, texto: string): Respuesta {
   const limpio = texto.trim();
   const n = normalizar(limpio);
-  if (NEGATIVAS.includes(n)) return { valor: null, estado: 'Desconocido' };
-  if (campo === 'marca') return { valor: marcaConocida(limpio) ?? limpio, estado: 'Reportado' };
-  if (campo === 'modelo') return { valor: MODELOS.find((m) => mencionaParecido(limpio, m)) ?? limpio, estado: 'Reportado' };
+  if (esNegativa(n)) return DESCONOCIDO;
+  if (campo === 'marca') {
+    const marca = marcaConocida(limpio);
+    return marca || pareceNombre(limpio, 3) ? { valor: marca ?? limpio, estado: 'Reportado' } : DESCONOCIDO;
+  }
+  if (campo === 'modelo') {
+    const modelo = MODELOS.find((m) => mencionaParecido(limpio, m));
+    return modelo || pareceNombre(limpio, 4) ? { valor: modelo ?? limpio, estado: 'Reportado' } : DESCONOCIDO;
+  }
   const rango = RANGOS.find(([etiqueta]) => normalizar(etiqueta) === n);
   if (rango) return { valor: rango[1], estado: 'Estimado' };
   const dicho = n.split(' ').map((p) => numero(p)).find((v) => v !== undefined);
